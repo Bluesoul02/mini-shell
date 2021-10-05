@@ -1,4 +1,4 @@
-TARGET_EXEC ?= mysh
+TARGET_EXEC ?= myshell
 
 BUILD_DIR ?= build
 SRC_DIRS ?= src
