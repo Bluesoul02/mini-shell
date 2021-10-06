@@ -18,4 +18,3 @@
 #define ROUGE(m) "\033[01;31m"m"\033[0m"
 #define VERT(m) "\033[01;32m"m"\033[0m"
 
-char *errormsg[]={"No error",ROUGE("Impossible to fork process"), ROUGE("Exec failed")};

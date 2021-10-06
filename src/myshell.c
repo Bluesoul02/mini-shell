@@ -1,5 +1,7 @@
 #include "myshell.h"
 
+char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
+
 void init() { // Clearing and initializing the shell
     clear();
     printf("---------- WELCOME TO OUR SHELL PROJECT ----------\n\n\n\n");
@@ -25,7 +27,6 @@ int requiredLine() {
     int i,status;
 
     for(;;){
-        putchar('>');
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
         for(s=lgcmd;isspace(*s);s++);
         for(i=0;*s;i++) {
