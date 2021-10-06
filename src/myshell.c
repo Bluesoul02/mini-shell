@@ -20,43 +20,38 @@ void loop() {
 }
 
 void requiredLine() {
-    int bufferSize = BUFFER_SIZE;
-    int position = 0;
-    char *buf = malloc(sizeof(char) * bufferSize);
-    int c;
+    char lgcmd[sizelgcmd],*tabcmd[size],*s,**ps;
+    pid_t pid;
+    int i,status;
 
-    if (!buf) err("Allocation error",2);
-    
-    while (1) {
-        c = getchar();
-        if (c == EOF || c == '\n') {
-            buf[position++] = '\0';
-            break;
-        } else buf[position++] = c;
-        if (position >= bufferSize) {
-            bufferSize += BUFFER_SIZE;
-            buf = realloc(buf, bufferSize);
-            if (!buf) err("Allocation error :", 2)
+    for(;;){
+        putchar('>');
+        if(!fgets(lgcmd,sizelgcmd-1,stdin)) break;
+        for(s=lgcmd;isspace(*s);s++);
+        for(i=0;*s;i++) {
+            tabcmd[i]=s;
+            while(!isspace(*s)) s++;
+            *s++ = '\0';
+            while(isspace(*s)) s++;
+        }
+        if(i){
+            tabcmd[i]=NULL;
+            if((pid=fork())==ERR) fatalsyserror(1);
+            if(pid){
+                wait(&status);
+                if(WIFEXITED(status)){
+                    if((status=WEXITSTATUS(status))!=FAILED_EXEC){
+                        printf(VERT("exit status of ["));
+                        for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
+                        printf(VERT("\b]=%d\n"),status);
+                    }
+                }else puts(ROUGE("Anormal exit"));
+            }else{
+                execvp(*tabcmd,tabcmd);
+                syserror(2);
+                exit(FAILED_EXEC);
+            }
         }
     }
-    if(position) readLine(buf);
-}
-
-int readLine(const char *commande) {
-    pid_t pid;
-    int status;
-    if((pid=fork()) == ERR) return ERR;
-    if(!pid) {
-        char *tab[]={"/bin/sh","-c",commande,NULL};
-        execv(*tab,tab);
-        return ERR_EXEC;
-    }
-    wait(&status);
-    if(WIFEXITED(status)) return WEXITSTATUS(status);
-    else return ERR;
-}
-
-void printStatus(int status) {
-    if(status == ERR) printf("Exec failed\n");
-    // else printf("exit status of [%s]=%d",,);
+    exit(0);
 }
