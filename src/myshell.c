@@ -20,13 +20,13 @@ void loop() {
 }
 
 void requiredLine() {
-    char lgcmd[sizelgcmd],*tabcmd[size],*s,**ps;
+    char lgcmd[LGCMD_SIZE],*tabcmd[BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,status;
 
     for(;;){
         putchar('>');
-        if(!fgets(lgcmd,sizelgcmd-1,stdin)) break;
+        if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
         for(s=lgcmd;isspace(*s);s++);
         for(i=0;*s;i++) {
             tabcmd[i]=s;
