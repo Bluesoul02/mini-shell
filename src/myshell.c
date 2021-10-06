@@ -49,7 +49,7 @@ int readLine(const char *commande) {
     if(!pid) {
         char *tab[]={"/bin/sh","-c",commande,NULL};
         execv(*tab,tab);
-        return ERR_EXEC;
+        return FAILED_EXEC;
     }
     wait(&status);
     if(WIFEXITED(status)) return WEXITSTATUS(status);
