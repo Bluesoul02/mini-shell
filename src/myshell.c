@@ -19,7 +19,7 @@ void loop() {
     } while(status);
 }
 
-void requiredLine() {
+int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd[BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,status;
