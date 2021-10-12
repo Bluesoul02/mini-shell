@@ -1,3 +1,3 @@
 #include "global.h"
 
-void changeDir(char * directory);
+void mycd(char * directory);
