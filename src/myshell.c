@@ -45,11 +45,11 @@ int requiredLine() {
             if((pid=fork()) == ERR) fatalsyserror(1);
             if(pid){
                 wait(&status);
-                if(WIFEXITED(status)){
+                if(WIFEXITED(status)){ // print the commmand status
                     if((status=WEXITSTATUS(status)) != FAILED_EXEC){
                         printf(VERT("exit status of ["));
                         for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
-                        printf(VERT("\b]=%d\n"),status);
+                        printf(VERT("]=%d\n"),status);
                     }
                 } else puts(ROUGE("Anormal exit"));
             } else {
