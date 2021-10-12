@@ -4,6 +4,7 @@
 #define CUSTOMCMD_SIZE 1
 
 char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
+char *customcmd[CUSTOMCMD_SIZE]= {"cd"};
 
 void init() { // Clearing and initializing the shell
     clear();
@@ -51,7 +52,11 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
-                    // filtrer avec strstr pour vérfier si dans la liste de cmd?
+                    for (int j = 0; j < CUSTOMCMD_SIZE; j++) {
+                        if (strstr(*tabcmd, customcmd[i])) {
+                            // customfct[i] ("build");
+                        }
+                    }
                     execvp(*tabcmd2[j],tabcmd2[j]);
                     syserror(2);
                     exit(FAILED_EXEC);
