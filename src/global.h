@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <ctype.h>
 #include <errno.h>
+#include <string.h>
 
 #define ERR -1
 #define FAILED_EXEC 127

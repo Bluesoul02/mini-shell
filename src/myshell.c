@@ -1,7 +1,11 @@
 #include "myshell.h"
+#include "commandes.c"
+
+#define CUSTOMCMD_SIZE 1
 
 char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
-char *cmd[]={"ls","cd","myls","myps"};
+char *customcmd[CUSTOMCMD_SIZE]= {"cd"};
+void (*customfct[CUSTOMCMD_SIZE]) (char * string) =  {&mycd};
 
 void init() { // Clearing and initializing the shell
     clear();
@@ -43,13 +47,17 @@ int requiredLine() {
                 wait(&status);
                 if(WIFEXITED(status)){
                     if((status=WEXITSTATUS(status)) != FAILED_EXEC){
-                        // filtrer avec strstr pour vérfier si dans la liste de cmd?
                         printf(VERT("exit status of ["));
                         for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                         printf(VERT("\b]=%d\n"),status);
                     }
-                }else puts(ROUGE("Anormal exit"));
-            }else{
+                } else puts(ROUGE("Anormal exit"));
+            } else {
+                // filtrer avec strstr pour vérfier si dans la liste de cmd?
+                for (int j = 0; j < CUSTOMCMD_SIZE; j++) 
+                    if (strstr(*tabcmd, customcmd[i])) {
+                        customfct[i] ("build");
+                    }
                 execvp(*tabcmd,tabcmd);
                 syserror(2);
                 exit(FAILED_EXEC);
