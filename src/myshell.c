@@ -1,6 +1,7 @@
 #include "myshell.h"
 
 char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
+char *cmd[]={"ls","cd","myls","myps"};
 
 void init() { // Clearing and initializing the shell
     clear();
@@ -37,11 +38,12 @@ int requiredLine() {
         }
         if(i){
             tabcmd[i]=NULL;
-            if((pid=fork())==ERR) fatalsyserror(1);
+            if((pid=fork()) == ERR) fatalsyserror(1);
             if(pid){
                 wait(&status);
                 if(WIFEXITED(status)){
-                    if((status=WEXITSTATUS(status))!=FAILED_EXEC){
+                    if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                        // filtrer avec strstr pour vérfier si dans la liste de cmd?
                         printf(VERT("exit status of ["));
                         for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                         printf(VERT("\b]=%d\n"),status);
