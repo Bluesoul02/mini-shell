@@ -1,5 +1,5 @@
 #include "myshell.h"
-#include "commandes.c"
+#include "commandes.h"
 
 #define CUSTOMCMD_SIZE 1
 
@@ -25,36 +25,46 @@ void loop() {
 }
 
 int requiredLine() {
-    char lgcmd[LGCMD_SIZE],*tabcmd[BUFFER_SIZE],*s,**ps;
+    char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
-    int i,status;
+    int i,j,status,in,out;
 
     for(;;){
+
+        in=0;
+        out=0;
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
-        for(s=lgcmd;isspace(*s);s++);
-        for(i=0;*s;i++) {
-            tabcmd[i]=s;
-            while(!isspace(*s)) s++;
-            *s++ = '\0';
-            while(isspace(*s)) s++;
+        for(s=lgcmd;isspace(*s) && *s != ';';s++); // we skip the spaces and semicolons at the beginning of the sentence
+        for(i=0;*s;i++) { // for all the sentence
+            tabcmd2[out][in++]=s; // we affect the actual s that represents our place in the sentence
+            while(!isspace(*s) && *s != ';') s++; // we go to the end of the actual word
+            if(*s == ';') { // multiple commands
+                tabcmd2[out++][in]=NULL; // one command per array
+                in=0;
+            }
+            *s++ = '\0'; // we put the end of word
+            while(isspace(*s) || *s == ';') s++; // we skip all the spaces and semicolons for the next word
+            if(*s == '\0' && in == 0) out--; // if we went to the next array but no need
         }
         if(i){
-            tabcmd[i]=NULL;
-            if((pid=fork()) == ERR) fatalsyserror(1);
-            if(pid){
-                wait(&status);
-                if(WIFEXITED(status)){ // print the commmand status
-                    if((status=WEXITSTATUS(status)) != FAILED_EXEC){
-                        printf(VERT("exit status of ["));
-                        for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
-                        printf(VERT("]=%d\n"),status);
-                    }
-                } else puts(ROUGE("Anormal exit"));
-            } else {
-                // filtrer avec strstr pour vérfier si dans la liste de cmd?
-                execvp(*tabcmd,tabcmd);
-                syserror(2);
-                exit(FAILED_EXEC);
+            if(in) tabcmd2[out][in]=NULL;
+            for(j=0;j<=out;j++) { // one processus per task/command
+                if((pid=fork()) == ERR) fatalsyserror(1);
+                if(!pid) { // execute the next command
+                    // filtrer avec strstr pour vérfier si dans la liste de cmd?
+                    execvp(*tabcmd2[j],tabcmd2[j]);
+                    syserror(2);
+                    exit(FAILED_EXEC);
+                } else { // wait for his sons to finish their tasks
+                    wait(&status);
+                    if(WIFEXITED(status)){ // print the commmand status
+                        if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                            printf(VERT("exit status of ["));
+                            for(ps=tabcmd2[j];*ps;ps++) printf("%s",*ps);
+                            printf(VERT("]=%d\n"),status);
+                        }
+                    } else puts(ROUGE("Anormal exit"));
+                }
             }
         }
     }
