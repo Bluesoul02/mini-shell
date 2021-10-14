@@ -5,7 +5,7 @@
 
 char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
 char *customcmd[CUSTOMCMD_SIZE]= {"mycd"};
-void (*customfct[CUSTOMCMD_SIZE]) (char * string) =  {&mycd};
+void (*customfct[CUSTOMCMD_SIZE]) (char * string) = {&mycd};
 
 void init() { // Clearing and initializing the shell
     clear();
@@ -38,7 +38,7 @@ int requiredLine() {
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
         for(s=lgcmd;isspace(*s) && *s != ';';s++); // we skip the spaces and semicolons at the beginning of the sentence
         for(i=0;*s;i++) { // for all the sentence
-            tabcmd2[out][in++]=s; // we affect the actual s that represents our place in the sentence
+            tabcmd2[out][in++]=s; // we affect the actual s that represents our position in the sentence
             while(!isspace(*s) && *s != ';') s++; // we go to the end of the actual word
             if(*s == ';') { // multiple commands
                 tabcmd2[out++][in]=NULL; // one command per array
@@ -53,10 +53,10 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
-                    for (int j = 0; j < CUSTOMCMD_SIZE; j++) {
-                        if (strcmp(*tabcmd2[j], customcmd[i])) {
+                    for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
+                        if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
                             printf("oui");
-                            //customfct[i] ("build");
+                            (*customfct[k])(".."); // cd must be done in the father
                         }
                     }
                     execvp(*tabcmd2[j],tabcmd2[j]);
