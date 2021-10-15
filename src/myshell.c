@@ -4,8 +4,8 @@
 #define CUSTOMCMD_SIZE 1
 
 char *errormsg[]={"No error",ROUGE("Impossible to fork process"),ROUGE("Exec failed")};
-char *customcmd[CUSTOMCMD_SIZE]= {"mycd"};
-void (*customfct[CUSTOMCMD_SIZE]) (char * string) = {&mycd};
+char *customcmd[CUSTOMCMD_SIZE]= {"myls"};
+void (*customfct[CUSTOMCMD_SIZE]) (char * directory, char * parameters) = {&myls};
 
 void init() { // Clearing and initializing the shell
     clear();
@@ -54,9 +54,11 @@ int requiredLine() {
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
                     for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
+                        printf("%s", *tabcmd2[j]); // where do we get the parameters?
                         if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
+                            // cd must be done in the father
                             printf("oui");
-                            (*customfct[k])(".."); // cd must be done in the father
+                            (*customfct[k])("", "");
                         }
                     }
                     execvp(*tabcmd2[j],tabcmd2[j]);
