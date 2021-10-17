@@ -8,6 +8,6 @@ void mycd(char * directory) {
 
 void myls(char * directory, char * parameters) {
     if (strcmp(directory, "") == 0) directory = ".";
-    char * args[] = {"ls", "--color", "-l",/* parameters,*/ directory, NULL};
+    char * args[] = {"ls", "--color", "-l", parameters, directory, NULL};
     execvp("ls", args);
 }
