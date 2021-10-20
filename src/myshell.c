@@ -54,11 +54,11 @@ int requiredLine() {
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
                     for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
-                        printf("%s", *tabcmd2[j]); // where do we get the parameters?
+                        printf("param : %s\n", *tabcmd2[j+1]);  // parameters are nowhere to be found
                         if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
                             // cd must be done in the father
-                            printf("oui");
                             (*customfct[k])("", "");
+                            exit(0);
                         }
                     }
                     execvp(*tabcmd2[j],tabcmd2[j]);

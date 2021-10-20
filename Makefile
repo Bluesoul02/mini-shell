@@ -11,7 +11,7 @@ CPPFLAGS ?= -MMD -MP -g
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	@echo Linking: "$@ ( $(foreach f,$^,$(subst $(BUILD_DIR)/$(SRC_DIRS),,$f)) )"	
-	@$(CC) $(OBJS) -o $@ $(LDFLAGS)
+	@$(CC) $(OBJS) -o $@ $(LDFLAGS) -lm
 	
 $(BUILD_DIR)/%.c.o: %.c
 	@echo Compiling: $<
