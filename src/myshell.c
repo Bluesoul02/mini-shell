@@ -53,9 +53,9 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
-                    for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
-                        printf("param : %s\n", *tabcmd2[j+1]);  // parameters are nowhere to be found
-                        if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
+                    for (int k = 0; k < in; k++) {
+                        printf("param : %s\n", tabcmd2[j][k]);  // parameters are nowhere to be found
+                        if (strcmp(*tabcmd2[j], customcmd[in]) == 0) {
                             // cd must be done in the father
                             (*customfct[k])("", "");
                             exit(0);
