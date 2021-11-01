@@ -10,7 +10,7 @@ void (*customfct[CUSTOMCMD_SIZE]) (char * directory, char * parameters) = {&myls
 void init() { // Clearing and initializing the shell
     clear();
     printf("---------- WELCOME TO OUR SHELL PROJECT ----------\n\n\n\n");
-    printf("Made by Avot Kévin and Delacroix Grégoire\n\n\n\n");
+    printf("Made by Kévin Avot and Grégoire Delacroix\n\n\n\n");
     sleep(1);
 }
 
