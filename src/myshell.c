@@ -30,6 +30,8 @@ int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
+    char * parameters = "";
+    char * directory = "";
 
     for(;;){
 
@@ -53,11 +55,21 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
-                    for (int k = 0; k < in; k++) {
-                        printf("param : %s\n", tabcmd2[j][k]);  // parameters are nowhere to be found
-                        if (strcmp(*tabcmd2[j], customcmd[in]) == 0) {
+                    for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
+                        if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
+                            for (int m = 1; m < in; m++) {
+                                printf("param : %s\n", tabcmd2[j][m]);
+                                if (!strncmp(tabcmd2[j][m], "-", 1)) {
+                                    // parameter
+                                    //strcat(parameters, tabcmd2[j][m]); // not working
+                                    printf("parameters : %s\n", parameters);
+                                } else {
+                                    // not a parameter
+                                    //strcat(directory, tabcmd2[j][m]); // not working
+                                }
+                            }
                             // cd must be done in the father
-                            (*customfct[k])("", "");
+                            (*customfct[k])(directory, parameters);
                             exit(0);
                         }
                     }

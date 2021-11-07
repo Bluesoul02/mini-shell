@@ -150,8 +150,8 @@ void myls(char * directory, char * parameters) {
     }
 
     while ((ptr = readdir(dir)) != NULL) {
-        if (!strcmp(ptr->d_name, ".") || !strcmp(ptr->d_name, ".."))
-        continue; // skip . and ..
+        if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")) && strstr(parameters, "a") == NULL)
+        continue; // skip anything that start with . and ..
 
         if (strlen(directory) + strlen(ptr->d_name) + 1 >= sizeBuffer) {
         sizeBuffer = strlen(directory) + strlen(ptr->d_name) + 10;
