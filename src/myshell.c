@@ -30,8 +30,8 @@ int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
-    char * parameters = "";
-    char * directory = "";
+    char * parameters = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
+    char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
 
     for(;;){
 
@@ -88,5 +88,7 @@ int requiredLine() {
             }
         }
     }
+    free(parameters);
+    free(directory);
     exit(0);
 }
