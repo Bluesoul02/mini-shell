@@ -165,22 +165,23 @@ void myls(char * directory, char * parameters) {
         exit(1);
         }
 
-        if (strstr(parameters, "l") != NULL) {
-          modeToLetter(fst.st_mode, str);               // permission information
-          printf("%s", str);                            // file type and permission
-          printf(" %ld", fst.st_nlink);                 // file hard links
-          printf(" %s", getpwuid(fst.st_uid)->pw_name); // file's owner
-          printf(" %s", getgrgid(fst.st_gid)->gr_name); // file's owner group
-          printf(" %*ld", lenght, (long)fst.st_size);   // file size
-          mytime = localtime(&fst.st_mtime);            // file time
-          printf(" %d-%02d-%02d %02d:%02d", mytime->tm_year + 1900,
-              mytime->tm_mon + 1, mytime->tm_mday, mytime->tm_hour,
-              mytime->tm_min);
-          printf(" %s", ptr->d_name); // file name
-          printf("\n");
-        } else printf("%s  ", ptr->d_name); // file name
+        modeToLetter(fst.st_mode, str);               // permission information
+        printf("%s", str);                            // file type and permission
+        printf(" %ld", fst.st_nlink);                 // file hard links
+        printf(" %s", getpwuid(fst.st_uid)->pw_name); // file's owner
+        printf(" %s", getgrgid(fst.st_gid)->gr_name); // file's owner group
+        printf(" %*ld", lenght, (long)fst.st_size);   // file size
+        mytime = localtime(&fst.st_mtime);            // file time
+        printf(" %d-%02d-%02d %02d:%02d", mytime->tm_year + 1900,
+            mytime->tm_mon + 1, mytime->tm_mday, mytime->tm_hour,
+            mytime->tm_min);
+        if (S_ISDIR(fst.st_mode)) printf(BLUE(" %s"), ptr->d_name); // if is directory write the name in blue
+        else if (S_ISLNK(fst.st_mode)) printf(CYAN(" %s"), ptr->d_name); // if is symbolic link write the name in cyan
+        else if (S_ISBLK(fst.st_mode) || S_ISCHR(fst.st_mode)) printf(YELLOW(" %s"), ptr->d_name); // if is block device or character device write the name in yellow
+        // else is regular file
+        else printf(" %s", ptr->d_name); // file name
+        printf("\n");
     }
-    if (strstr(parameters, "l") == NULL) printf("\n");
 
     if (closedir(dir) == -1) {
         perror("close dir");

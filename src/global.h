@@ -17,5 +17,8 @@
 #define fatalsyserror(x) syserror(x), exit (x)
 #define err(m,n) printf("Error %c",m), exit(n)
 #define ROUGE(m) "\033[01;31m"m"\033[0m"
+#define YELLOW(m) "\033[01;34m"m"\033[0m"
+#define BLUE(m) "\033[01;34m"m"\033[0m"
+#define CYAN(m) "\033[01;36m"m"\033[0m"
 #define VERT(m) "\033[01;32m"m"\033[0m"
 
