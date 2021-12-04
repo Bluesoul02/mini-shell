@@ -30,8 +30,8 @@ int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
-    char * parameters; // le malloc pour pouvoir strcat
-    char * directory; // le malloc pour pouvoir strcat
+    char * parameters = "";
+    char * directory = "";
 
     for(;;){
 
@@ -61,14 +61,13 @@ int requiredLine() {
                                 printf("param : %s\n", tabcmd2[j][m]);
                                 if (!strncmp(tabcmd2[j][m], "-", 1)) {
                                     // parameter
-                                    //strcat(parameters, tabcmd2[j][m]); // not working
+                                    strcat(parameters, tabcmd2[j][m]);
                                     printf("parameters : %s\n", parameters);
                                 } else {
                                     // not a parameter
-                                    //strcat(directory, tabcmd2[j][m]); // not working
+                                    strcat(directory, tabcmd2[j][m]);
                                 }
                             }
-                            // cd must be done in the father
                             (*customfct[k])(directory, parameters);
                             exit(0);
                         }
