@@ -26,10 +26,42 @@ void loop() {
     } while(status);
 }
 
+/**
+ * @brief Get the Mem Segment object
+ *
+ * @param key
+ * @return int*
+ */
+int * getMemSegment(key_t key, int *shmid) {
+    int *shm;
+
+    // Create the segment.
+    if ((*shmid = shmget(key, sizeof(int), IPC_CREAT | 0666)) < 0) {
+        perror("shmget");
+        exit(1);
+    }
+
+    // printf("shmid = %d\n", *shmid);
+
+    // Now we attach the segment to our data space.
+    if ((shm = shmat(*shmid, NULL, 0)) == (int *)-1) {
+        perror("shmat");
+        exit(1);
+    }
+
+    return shm;
+} // getMemSegment
+
 int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
+    
+    int shmid;
+    int * shm;
+
+    shm = getMemSegment(2905, &shmid);
+
     char * parameters = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
     char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
 
@@ -88,6 +120,10 @@ int requiredLine() {
             }
         }
     }
+    /* detach shared memory segment */  
+    shmdt(shm);
+    /* remove shared memory segment */  
+    shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
     exit(0);
