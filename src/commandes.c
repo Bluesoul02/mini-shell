@@ -3,6 +3,7 @@
 #include <pwd.h>
 #include <stdint.h>
 #include <math.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -142,8 +143,22 @@ void myls(char * directory, char * parameters) {
     unsigned lenght = floor(log10(maxSize)) + 1;
     char *buffer = NULL;
     int sizeBuffer = 0;
+    int count = 0;
+    bool isR = strstr(parameters, "R") != NULL;
     DIR *dir = opendir(directory);
 
+    if (isR) {
+      if (stat(directory, &fst) == -1) {
+        perror("stat");
+        exit(1);
+      }
+
+      if (!S_ISDIR(fst.st_mode))
+        printf("%s\n", directory);
+      else
+        printf("%s:\n", directory);
+    }
+    
     if (!dir) {
         perror("opendir");
         exit(1);
@@ -152,6 +167,10 @@ void myls(char * directory, char * parameters) {
     while ((ptr = readdir(dir)) != NULL) {
         if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")) && strstr(parameters, "a") == NULL)
         continue; // skip anything that start with . and .. except if a is in the parameters
+
+        // counting number of directory
+        // if (ptr->d_type & DT_DIR)
+        //   count++;
 
         if (strlen(directory) + strlen(ptr->d_name) + 1 >= sizeBuffer) {
         sizeBuffer = strlen(directory) + strlen(ptr->d_name) + 10;
@@ -181,6 +200,32 @@ void myls(char * directory, char * parameters) {
         // else is regular file
         else printf(" %s", ptr->d_name); // file name
         printf("\n");
+    }
+    // pb avec ce if
+    if (isR) {
+      printf("\n");
+
+      // recursive call
+      rewinddir(dir);
+
+      while ((ptr = readdir(dir)) != NULL) {
+        
+        if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")))
+          continue; // skip . and ..
+
+        // if directory
+        if (ptr->d_type & DT_DIR) {
+
+          if (strlen(directory) + strlen(ptr->d_name) + 1 >= sizeBuffer) {
+            sizeBuffer = strlen(directory) + strlen(ptr->d_name) + 10;
+            buffer = (char *)realloc(buffer, sizeBuffer);
+            assert(buffer);
+          }
+
+          sprintf(buffer, "%s/%s", directory, ptr->d_name);
+          myls(buffer, parameters);
+        }
+      }
     }
 
     if (closedir(dir) == -1) {
