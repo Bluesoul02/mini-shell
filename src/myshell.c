@@ -73,12 +73,7 @@ int requiredLine() {
         for(s=lgcmd;isspace(*s);s++); // we skip the spaces at the beginning of the sentence
         for(i=0;*s;i++) { // for all the sentence
             tabcmd2[out][in++]=s; // we affect the actual s that represents our position in the sentence
-            while(!isspace(*s) && *s != ';' && (strncmp("&& ",s,3)) && (strncmp("|| ",s,3))) s++; // we go to the end of the actual word
-            if((strncmp("&& ",s,3) == 0) || (strncmp("|| ",s,3) == 0)) {
-                tabcmd2[out++][in]=NULL; // one command per array
-                in=0;
-                s+=2;
-            }
+            while(!isspace(*s) && *s != ';') s++; // we go to the end of the actual word
             if(*s == ';') { // multiple commands
                 tabcmd2[out++][in]=NULL; // one command per array
                 in=0;
@@ -90,50 +85,54 @@ int requiredLine() {
         if(i){
             if(in) tabcmd2[out][in]=NULL;
             for(j=0;j<=out;j++) { // one processus per task/command
-                int pos=0, and=0, or=0;
-                while(tabcmd2[j][pos] != NULL) pos++;
-                if(strcmp("&&",tabcmd2[j][--pos]) == 0) {
-                    and = 1;
-                    tabcmd2[j][pos] = NULL;
-                } else if (strcmp("||",tabcmd2[j][pos]) == 0) {
-                    or = 1;
-                    tabcmd2[j][pos] = NULL;
-                }
-                if((pid=fork()) == ERR) fatalsyserror(1);
-                if(!pid) { // execute the next command
-                    for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
-                        if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
-                            printf("C'est myls");
-                            for (int m = 1; m < in; m++) {
-                                printf("param : %s\n", tabcmd2[j][m]);
-                                if (!strncmp(tabcmd2[j][m], "-", 1)) {
-                                    // parameter
-                                    strcat(parameters, tabcmd2[j][m]);
-                                    printf("parameters : %s\n", parameters);
-                                } else {
-                                    // not a parameter
-                                    strcat(directory, tabcmd2[j][m]);
-                                }
-                            }
-                            (*customfct[k])(directory, parameters);
-                            exit(0);
-                        }
+                int to=0,and=0,or=0,index;
+                while(1) {
+                    index=0;
+                    char *tabcmd[BUFFER_SIZE] = { NULL };
+                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
+                        tabcmd[index++] = tabcmd2[j][to++];
                     }
-                    execvp(*tabcmd2[j],tabcmd2[j]);
-                    syserror(2);
-                    exit(FAILED_EXEC);
-                } else { // wait for his sons to finish their tasks
-                    wait(&status);
-                    if(WIFEXITED(status)){ // print the commmand status
-                        if((status=WEXITSTATUS(status)) != FAILED_EXEC){
-                            printf(VERT("exit status of ["));
-                            for(ps=tabcmd2[j];*ps;ps++) printf("%s",*ps);
-                            printf(VERT("]=%d\n"),status);
-                            if(or) break;
-                        } else {
-                            if(and) break;
+                    if(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) == 0) { // in the case of multiple commands linked conditionally, execute each command separately one after the other
+                        tabcmd[index] = NULL;
+                        and = 1;
+                    } else if(tabcmd2[j][to] != NULL &&strcmp("||",tabcmd2[j][to]) == 0) {
+                        tabcmd[index] = NULL;
+                        or = 1;
+                    }
+                    if((pid=fork()) == ERR) fatalsyserror(1);
+                    if(!pid) { // execute the next command
+                        for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
+                            if (strcmp(*tabcmd, customcmd[k]) == 0) {
+                                for (int m = 1; m < index; m++) {
+                                    printf("param : %s\n", tabcmd[m]);
+                                    if (!strncmp(tabcmd[m], "-", 1)) {
+                                        // parameter
+                                        strcat(parameters, tabcmd[m]);
+                                        printf("parameters : %s\n", parameters);
+                                    } else {
+                                        // not a parameter
+                                        strcat(directory, tabcmd[m]);
+                                    }
+                                }
+                                (*customfct[k])(directory, parameters);
+                                exit(0);
+                            }
                         }
-                    } else puts(ROUGE("Anormal exit"));
+                        execvp(*tabcmd,tabcmd);
+                        syserror(2);
+                        exit(FAILED_EXEC);
+                    } else { // wait for his sons to finish their tasks
+                        wait(&status);
+                        if(WIFEXITED(status)){ // print the commmand status
+                            if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                                printf(VERT("exit status of ["));
+                                for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
+                                printf(VERT("]=%d\033[0m\n"),status);
+                                if(or) break;
+                            } else if(and) break;
+                        } else puts(ROUGE("Anormal exit"));
+                    }
+                    if(tabcmd2[out][to++] == NULL) break;
                 }
             }
         }
