@@ -20,6 +20,7 @@ void printDirectory() {
 }
 
 void loop() {
+    printDirectory();
     requiredLine();
 }
 
@@ -63,11 +64,10 @@ int requiredLine() {
     char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
 
     for(;;){
-        printDirectory();
         in=0;
         out=0;
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
-        for(s=lgcmd;isspace(*s) && *s != ';';s++); // we skip the spaces and semicolons at the beginning of the sentence
+        for(s=lgcmd;isspace(*s);s++); // we skip the spaces at the beginning of the sentence
         for(i=0;*s;i++) { // for all the sentence
             tabcmd2[out][in++]=s; // we affect the actual s that represents our position in the sentence
             while(!isspace(*s) && *s != ';') s++; // we go to the end of the actual word
@@ -82,45 +82,63 @@ int requiredLine() {
         if(i){
             if(in) tabcmd2[out][in]=NULL;
             for(j=0;j<=out;j++) { // one processus per task/command
-                if (strcmp(*tabcmd2[j], "cd") == 0) {
-                    if (tabcmd2[j][1] == NULL) mycd("~");
-                    else mycd(tabcmd2[j][1]);
-                }
-                if (strcmp(*tabcmd2[j], "exit") == 0) {
-                    myexit(tabcmd2[j][1]);
-                } 
-                if((pid=fork()) == ERR) fatalsyserror(1);
-                if(!pid) { // execute the next command
-                    for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
-                        if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
-                            for (int m = 1; m < in; m++) {
-                                if (!strncmp(tabcmd2[j][m], "-", 1)) {
-                                    // parameter
-                                    strcat(parameters, tabcmd2[j][m]);
-                                } else {
-                                    // not a parameter
-                                    strcat(directory, tabcmd2[j][m]);
-                                }
-                            }
-                            (*customfct[k])(directory, parameters);
-                            exit(0);
-                        }
+                int to=0,and=0,or=0,index;
+                while(1) {
+                    index=0;
+                    char *tabcmd[BUFFER_SIZE] = { NULL };
+                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
+                        tabcmd[index++] = tabcmd2[j][to++];
                     }
-                    execvp(*tabcmd2[j],tabcmd2[j]);
-                    syserror(2);
-                    exit(FAILED_EXEC);
-                } else { // wait for his sons to finish their tasks
-                    wait(&status);
-                    if(WIFEXITED(status)){ // print the commmand status
-                        if((status=WEXITSTATUS(status)) != FAILED_EXEC){
-                            printf(VERT("exit status of ["));
-                            for(ps=tabcmd2[j];*ps;ps++) printf("%s",*ps);
-                            printf(VERT("]=%d\n"),status);
+                    if(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) == 0) { // in the case of multiple commands linked conditionally, execute each command separately one after the other
+                        tabcmd[index] = NULL;
+                        and = 1;
+                    } else if(tabcmd2[j][to] != NULL &&strcmp("||",tabcmd2[j][to]) == 0) {
+                        tabcmd[index] = NULL;
+                        or = 1;
+                    }
+                    if (strcmp(*tabcmd2[j], "cd") == 0) {
+                        if (tabcmd2[j][1] == NULL) mycd("~");
+                        else mycd(tabcmd2[j][1]);
+                    }
+                    if (strcmp(*tabcmd2[j], "exit") == 0) {
+                        myexit(tabcmd2[j][1]);
+                    } 
+                    if((pid=fork()) == ERR) fatalsyserror(1);
+                    if(!pid) { // execute the next command
+                        for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
+                            if (strcmp(*tabcmd, customcmd[k]) == 0) {
+                                for (int m = 1; m < index; m++) {
+                                    if (!strncmp(tabcmd[m], "-", 1)) {
+                                        // parameter
+                                        strcat(parameters, tabcmd[m]);
+                                    } else {
+                                        // not a parameter
+                                        strcat(directory, tabcmd[m]);
+                                    }
+                                }
+                                (*customfct[k])(directory, parameters);
+                                exit(0);
+                            }
                         }
-                    } else puts(ROUGE("Anormal exit"));
+                        execvp(*tabcmd,tabcmd);
+                        syserror(2);
+                        exit(FAILED_EXEC);
+                    } else { // wait for his sons to finish their tasks
+                        wait(&status);
+                        if(WIFEXITED(status)){ // print the commmand status
+                            if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                                printf(VERT("exit status of ["));
+                                for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
+                                printf(VERT("]=%d\033[0m\n"),status);
+                                if(or) break;
+                            } else if(and) break;
+                        } else puts(ROUGE("Anormal exit"));
+                    }
+                    if(tabcmd2[out][to++] == NULL) break;
                 }
             }
         }
+        printDirectory();
     }
     /* detach shared memory segment */  
     shmdt(shm);
