@@ -1,14 +1,4 @@
 #include "commandes.h"
-#include <grp.h>
-#include <pwd.h>
-#include <stdint.h>
-#include <math.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <dirent.h>
-#include <assert.h>
 
 struct dirent *ptr;
 

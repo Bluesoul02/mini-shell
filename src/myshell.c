@@ -54,6 +54,8 @@ int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
+    // help distinguishing command executed from command executed by its childrens
+    bool fathercmd = false;
     
     int shmid;
     int * shm;
@@ -97,14 +99,16 @@ int requiredLine() {
                         or = 1;
                     }
                     if (strcmp(*tabcmd2[j], "cd") == 0) {
+                        fathercmd = true;
                         if (tabcmd2[j][1] == NULL) mycd("~");
                         else mycd(tabcmd2[j][1]);
                     }
                     if (strcmp(*tabcmd2[j], "exit") == 0) {
+                        fathercmd = true;
                         myexit(tabcmd2[j][1]);
                     } 
                     if((pid=fork()) == ERR) fatalsyserror(1);
-                    if(!pid) { // execute the next command
+                    if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
                                 for (int m = 1; m < index; m++) {
@@ -126,7 +130,8 @@ int requiredLine() {
                     } else { // wait for his sons to finish their tasks
                         wait(&status);
                         if(WIFEXITED(status)){ // print the commmand status
-                            if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                            if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
+                                fathercmd = false;
                                 printf(VERT("exit status of ["));
                                 for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                                 printf(VERT("]=%d\033[0m\n"),status);
