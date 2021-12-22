@@ -15,15 +15,12 @@ void init() { // Clearing and initializing the shell
 }
 
 void printDirectory() {
-    printf(">");
+    char * buff = getcwd(NULL, 0);
+    printf("%s>", buff);
 }
 
 void loop() {
-    int status=1;
-    do {
-        printDirectory();
-        requiredLine();
-    } while(status);
+    requiredLine();
 }
 
 /**
@@ -66,7 +63,7 @@ int requiredLine() {
     char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
 
     for(;;){
-
+        printDirectory();
         in=0;
         out=0;
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
@@ -85,16 +82,21 @@ int requiredLine() {
         if(i){
             if(in) tabcmd2[out][in]=NULL;
             for(j=0;j<=out;j++) { // one processus per task/command
+                if (strcmp(*tabcmd2[j], "cd") == 0) {
+                    if (tabcmd2[j][1] == NULL) mycd("~");
+                    else mycd(tabcmd2[j][1]);
+                }
+                if (strcmp(*tabcmd2[j], "exit") == 0) {
+                    myexit(tabcmd2[j][1]);
+                } 
                 if((pid=fork()) == ERR) fatalsyserror(1);
                 if(!pid) { // execute the next command
                     for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                         if (strcmp(*tabcmd2[j], customcmd[k]) == 0) {
                             for (int m = 1; m < in; m++) {
-                                printf("param : %s\n", tabcmd2[j][m]);
                                 if (!strncmp(tabcmd2[j][m], "-", 1)) {
                                     // parameter
                                     strcat(parameters, tabcmd2[j][m]);
-                                    printf("parameters : %s\n", parameters);
                                 } else {
                                     // not a parameter
                                     strcat(directory, tabcmd2[j][m]);

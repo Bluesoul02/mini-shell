@@ -13,9 +13,14 @@
 struct dirent *ptr;
 
 void mycd(char * directory) {
-    printf("%s", directory);
+  if (strcmp(directory, "~") == 0) directory = getenv("HOME");
     if (chdir(directory) != 0)
-        printf("No such file or directory");
+        printf("No such file or directory\n");
+}
+
+void myexit() {
+  //TO DO exit qui quittera le shell sans tuer les cmd lancé en bg
+  exit(0);
 }
 
 /**
@@ -97,7 +102,7 @@ void modeToLetter(int mode, char *str) {
 int maxSizeInRep(char *direct) {
   long int max = 0;
   struct stat fst;
-  char *buffer = NULL;
+  char * buffer = NULL;
   int sizeBuffer = 0;
   DIR *dir = opendir(direct);
 
@@ -105,8 +110,14 @@ int maxSizeInRep(char *direct) {
     perror("opendir");
     exit(1);
   }
+  printf("maxSize\n");
 
   while ((ptr = readdir(dir)) != NULL) {
+    printf("maxSize boucle\n");
+
+    if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")))
+      continue; // skip . and ..
+
     if (strlen(direct) + strlen(ptr->d_name) + 1 >= sizeBuffer) {
       sizeBuffer = strlen(direct) + strlen(ptr->d_name) + 10;
       buffer = (char *)realloc(buffer, sizeBuffer);
@@ -114,11 +125,14 @@ int maxSizeInRep(char *direct) {
     }
 
     sprintf(buffer, "%s/%s", direct, ptr->d_name);
+    printf("%s\n", buffer);
+    // erreur ici pour le -R
     if (fstatat(dirfd(dir), buffer, &fst, AT_SYMLINK_NOFOLLOW) == -1) {
       perror("stat");
       exit(1);
     }
 
+    printf("post fstatat\n");
     if ((long)fst.st_size > max)
       max = (long)fst.st_size;
   }
@@ -127,6 +141,7 @@ int maxSizeInRep(char *direct) {
     perror("close dir");
     exit(1);
   }
+  printf("fin maxSize\n");
 
   if (buffer)
     free(buffer);
@@ -135,17 +150,19 @@ int maxSizeInRep(char *direct) {
 
 
 void myls(char * directory, char * parameters) {
+    printf("myls\n");
     if (strcmp(directory, "") == 0) directory = ".";
     struct stat fst;
     struct tm *mytime;
     char str[12];
+    printf("myls1\n");
     long int maxSize = maxSizeInRep(directory);
-    unsigned lenght = floor(log10(maxSize)) + 1;
+    printf("myls2\n");
+    unsigned length = floor(log10(maxSize)) + 1;
     char *buffer = NULL;
     int sizeBuffer = 0;
     int count = 0;
     bool isR = strstr(parameters, "R") != NULL;
-    DIR *dir = opendir(directory);
 
     if (isR) {
       if (stat(directory, &fst) == -1) {
@@ -159,6 +176,7 @@ void myls(char * directory, char * parameters) {
         printf("%s:\n", directory);
     }
     
+    DIR *dir = opendir(directory);
     if (!dir) {
         perror("opendir");
         exit(1);
@@ -167,10 +185,6 @@ void myls(char * directory, char * parameters) {
     while ((ptr = readdir(dir)) != NULL) {
         if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")) && strstr(parameters, "a") == NULL)
         continue; // skip anything that start with . and .. except if a is in the parameters
-
-        // counting number of directory
-        // if (ptr->d_type & DT_DIR)
-        //   count++;
 
         if (strlen(directory) + strlen(ptr->d_name) + 1 >= sizeBuffer) {
         sizeBuffer = strlen(directory) + strlen(ptr->d_name) + 10;
@@ -189,7 +203,7 @@ void myls(char * directory, char * parameters) {
         printf(" %ld", fst.st_nlink);                 // file hard links
         printf(" %s", getpwuid(fst.st_uid)->pw_name); // file's owner
         printf(" %s", getgrgid(fst.st_gid)->gr_name); // file's owner group
-        printf(" %*ld", lenght, (long)fst.st_size);   // file size
+        printf(" %*ld", length, (long)fst.st_size);   // file size
         mytime = localtime(&fst.st_mtime);            // file time
         printf(" %d-%02d-%02d %02d:%02d", mytime->tm_year + 1900,
             mytime->tm_mon + 1, mytime->tm_mday, mytime->tm_hour,
@@ -201,7 +215,8 @@ void myls(char * directory, char * parameters) {
         else printf(" %s", ptr->d_name); // file name
         printf("\n");
     }
-    // pb avec ce if
+
+    // le option_R du prof marche pas 
     if (isR) {
       printf("\n");
 
@@ -209,7 +224,7 @@ void myls(char * directory, char * parameters) {
       rewinddir(dir);
 
       while ((ptr = readdir(dir)) != NULL) {
-        
+
         if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")))
           continue; // skip . and ..
 
@@ -223,6 +238,8 @@ void myls(char * directory, char * parameters) {
           }
 
           sprintf(buffer, "%s/%s", directory, ptr->d_name);
+
+          printf("%s\n", buffer);
           myls(buffer, parameters);
         }
       }
@@ -235,4 +252,5 @@ void myls(char * directory, char * parameters) {
 
     if (buffer)
         free(buffer);
+        
 }
