@@ -90,6 +90,7 @@ int requiredLine() {
                 while(1) {
                     parameters = "";
                     index=0;
+                    glob_t globbuf;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
                         tabcmd[index++] = tabcmd2[j][to++];
@@ -112,36 +113,29 @@ int requiredLine() {
                     } 
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
-                        for (int m = 1; m < index; m++) {
-                            if (!strncmp(tabcmd[m], "-", 1)) {
-                                // parameter
-                                strcat(parameters, tabcmd[m]);
-                            } else {
-                                // not a parameter
-                                strcat(directory, tabcmd[m]);
-                            }
-                        }
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
+                                for (int m = 1; m < index; m++) {
+                                    if (!strncmp(tabcmd[m], "-", 1)) {
+                                        // parameter
+                                        strcat(parameters, tabcmd[m]);
+                                    } else {
+                                        // not a parameter
+                                        strcat(directory, tabcmd[m]);
+                                    }
+                                }
                                 // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
                                 exit(0);
                             }
                         }
-                        if (strstr(directory, "*")) {
-                            printf("glob\n");   
-                            globbuf.gl_offs = using_parameters ? 2 : 1;
-                            glob(directory, GLOB_DOOFFS, NULL, &globbuf);
-                            globbuf.gl_pathv[0] = *tabcmd;
-                            if (using_parameters) globbuf.gl_pathv[1] = parameters;
-                            execvp(*tabcmd, &globbuf.gl_pathv[0]);
-                        }
-                        else
-                            execvp(*tabcmd,tabcmd);
+                        if(!myglob(globbuf, tabcmd,index)) exit(0);
+                        execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
                         wait(&status);
+                        globfree(&globbuf);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
                                 printf(VERT("exit status of ["));

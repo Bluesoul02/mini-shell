@@ -239,5 +239,33 @@ void myls(char * directory, char * parameters) {
 
     if (buffer)
         free(buffer);
-        
+}
+
+int is_joker(char c) {
+  if (c == '*' || c == '?' || c == '[') return 1;
+  return 0;
+}
+
+int myglob(glob_t globbuf, char *tab[BUFFER_SIZE], int limit) {
+  int count=0, joker=0, index[100], count2=0, jokers[100];
+  for(int x=0; x<limit; x++) {
+    for(int y=0; y<strlen(tab[x]); y++) if(is_joker(tab[x][y])) {
+      joker=1;
+      break;
+    }
+    if(joker) jokers[count2++] = x;
+    else index[count++] = x;
+    joker=0;
+  }
+  globbuf.gl_offs = count;
+  for(int x=0; x<count2; x++) {
+    if(x==0) glob(tab[jokers[x]], GLOB_DOOFFS, NULL, &globbuf);
+    else glob(tab[jokers[x]], GLOB_DOOFFS | GLOB_APPEND, NULL, &globbuf);
+  }
+  if(count2) {
+    if(!globbuf.gl_pathc) return 0;
+    for(int x=0; x<count; x++) globbuf.gl_pathv[x] = tab[index[x]];
+    execvp(globbuf.gl_pathv[0], &globbuf.gl_pathv[0]);
+  }
+  return 1;
 }
