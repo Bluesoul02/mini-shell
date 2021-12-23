@@ -56,15 +56,16 @@ int requiredLine() {
     int i,j,status,in,out;
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
-    glob_t globbuf;
+    glob_t globbuf = {0};
+    bool using_parameters = false;
     
     int shmid;
     int * shm;
 
     shm = getMemSegment(2905, &shmid);
 
-    char * parameters = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
-    char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
+    char * parameters = malloc(100 * sizeof(char)); // parameters of the command
+    char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
 
     for(;;){
         in=0;
@@ -128,13 +129,11 @@ int requiredLine() {
                             }
                         }
                         if (strstr(directory, "*")) {
-                            globbuf.gl_offs = 2;
+                            printf("glob\n");   
+                            globbuf.gl_offs = using_parameters ? 2 : 1;
                             glob(directory, GLOB_DOOFFS, NULL, &globbuf);
                             globbuf.gl_pathv[0] = *tabcmd;
-                            printf("glob\n");   
-                            sprintf(globbuf.gl_pathv[1], "%s%s", "-", parameters);
-                            printf("%s\n", globbuf.gl_pathv[0]);
-                            printf("%s\n", globbuf.gl_pathv[1]);
+                            if (using_parameters) globbuf.gl_pathv[1] = parameters;
                             execvp(*tabcmd, &globbuf.gl_pathv[0]);
                         }
                         else
@@ -152,6 +151,7 @@ int requiredLine() {
                             } else if(and) break;
                         } else puts(ROUGE("Anormal exit"));
                         fathercmd = false;
+                        using_parameters = false;
                     }
                     if(tabcmd2[out][to++] == NULL) break;
                 }
