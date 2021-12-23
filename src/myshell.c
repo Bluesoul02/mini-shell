@@ -88,6 +88,7 @@ int requiredLine() {
                 int to=0,and=0,or=0,index;
                 while(1) {
                     index=0;
+                    glob_t globbuf;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
                         tabcmd[index++] = tabcmd2[j][to++];
@@ -118,11 +119,13 @@ int requiredLine() {
                                 exit(0);
                             }
                         }
+                        if(!myglob(globbuf, tabcmd,index)) exit(0);
                         execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
                         wait(&status);
+                        globfree(&globbuf);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC){
                                 printf(VERT("exit status of ["));
