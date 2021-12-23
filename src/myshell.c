@@ -1,5 +1,4 @@
 #include "myshell.h"
-#include "commandes.h"
 
 #define CUSTOMCMD_SIZE 1
 
@@ -56,8 +55,8 @@ int requiredLine() {
     int i,j,status,in,out;
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
-    glob_t globbuf = {0};
     bool using_parameters = false;
+    char * str_piped;
     
     int shmid;
     int * shm;
@@ -92,6 +91,7 @@ int requiredLine() {
                     index=0;
                     glob_t globbuf;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
+
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
                         tabcmd[index++] = tabcmd2[j][to++];
                     }
@@ -110,7 +110,15 @@ int requiredLine() {
                     if (strcmp(*tabcmd2[j], "exit") == 0) {
                         fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
-                    } 
+                    }
+
+                    printf("%s", tabcmd[index]);
+                    if (isPiped(tabcmd[index], str_piped)) {
+                        printf("pipe");
+                        // TO DO split/parse str_piped
+                        //pipedExec(tabcmd[index], ); + le result d'au dessus
+                    }
+
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
@@ -159,6 +167,5 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
-    globfree(&globbuf);
     exit(0);
 }
