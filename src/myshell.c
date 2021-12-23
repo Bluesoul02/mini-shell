@@ -15,15 +15,13 @@ void init() { // Clearing and initializing the shell
 }
 
 void printDirectory() {
-    printf(">");
+    char * buff = getcwd(NULL, 0);
+    printf("%s>", buff);
 }
 
 void loop() {
-    int status=1;
-    do {
-        printDirectory();
-        requiredLine();
-    } while(status);
+    printDirectory();
+    requiredLine();
 }
 
 /**
@@ -56,17 +54,20 @@ int requiredLine() {
     char lgcmd[LGCMD_SIZE],*tabcmd2[100][BUFFER_SIZE],*s,**ps;
     pid_t pid;
     int i,j,status,in,out;
+    // help distinguishing command executed from command executed by its childrens
+    bool fathercmd = false;
+    glob_t globbuf = {0};
+    bool using_parameters = false;
     
     int shmid;
     int * shm;
 
     shm = getMemSegment(2905, &shmid);
 
-    char * parameters = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
-    char * directory  = malloc(100 * sizeof(char)); // le malloc pour pouvoir strcat
+    char * parameters = malloc(100 * sizeof(char)); // parameters of the command
+    char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
 
     for(;;){
-
         in=0;
         out=0;
         if(!fgets(lgcmd,LGCMD_SIZE-1,stdin)) break;
@@ -87,6 +88,7 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 int to=0,and=0,or=0,index;
                 while(1) {
+                    parameters = "";
                     index=0;
                     glob_t globbuf;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
@@ -100,21 +102,29 @@ int requiredLine() {
                         tabcmd[index] = NULL;
                         or = 1;
                     }
+                    if (strcmp(*tabcmd2[j], "cd") == 0) {
+                        fathercmd = true; // the father executed the cmd
+                        if (tabcmd2[j][1] == NULL) mycd("~"); // if no directory is set we cd to home directory
+                        else mycd(tabcmd2[j][1]);
+                    }
+                    if (strcmp(*tabcmd2[j], "exit") == 0) {
+                        fathercmd = true; // the father executed the cmd
+                        myexit(tabcmd2[j][1]);
+                    } 
                     if((pid=fork()) == ERR) fatalsyserror(1);
-                    if(!pid) { // execute the next command
+                    if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
                                 for (int m = 1; m < index; m++) {
-                                    printf("param : %s\n", tabcmd[m]);
                                     if (!strncmp(tabcmd[m], "-", 1)) {
                                         // parameter
                                         strcat(parameters, tabcmd[m]);
-                                        printf("parameters : %s\n", parameters);
                                     } else {
                                         // not a parameter
                                         strcat(directory, tabcmd[m]);
                                     }
                                 }
+                                // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
                                 exit(0);
                             }
@@ -127,13 +137,15 @@ int requiredLine() {
                         wait(&status);
                         globfree(&globbuf);
                         if(WIFEXITED(status)){ // print the commmand status
-                            if((status=WEXITSTATUS(status)) != FAILED_EXEC){
+                            if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
                                 printf(VERT("exit status of ["));
                                 for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                                 printf(VERT("]=%d\033[0m\n"),status);
                                 if(or) break;
                             } else if(and) break;
                         } else puts(ROUGE("Anormal exit"));
+                        fathercmd = false;
+                        using_parameters = false;
                     }
                     if(tabcmd2[out][to++] == NULL) break;
                 }
@@ -147,5 +159,6 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
+    globfree(&globbuf);
     exit(0);
 }
