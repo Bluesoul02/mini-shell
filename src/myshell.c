@@ -56,6 +56,7 @@ int requiredLine() {
     int i,j,status,in,out;
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
+    glob_t globbuf;
     
     int shmid;
     int * shm;
@@ -86,6 +87,7 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 int to=0,and=0,or=0,index;
                 while(1) {
+                    parameters = "";
                     index=0;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
@@ -99,45 +101,57 @@ int requiredLine() {
                         or = 1;
                     }
                     if (strcmp(*tabcmd2[j], "cd") == 0) {
-                        fathercmd = true;
-                        if (tabcmd2[j][1] == NULL) mycd("~");
+                        fathercmd = true; // the father executed the cmd
+                        if (tabcmd2[j][1] == NULL) mycd("~"); // if no directory is set we cd to home directory
                         else mycd(tabcmd2[j][1]);
                     }
                     if (strcmp(*tabcmd2[j], "exit") == 0) {
-                        fathercmd = true;
+                        fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
                     } 
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
+                        for (int m = 1; m < index; m++) {
+                            if (!strncmp(tabcmd[m], "-", 1)) {
+                                // parameter
+                                strcat(parameters, tabcmd[m]);
+                            } else {
+                                // not a parameter
+                                strcat(directory, tabcmd[m]);
+                            }
+                        }
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
-                                for (int m = 1; m < index; m++) {
-                                    if (!strncmp(tabcmd[m], "-", 1)) {
-                                        // parameter
-                                        strcat(parameters, tabcmd[m]);
-                                    } else {
-                                        // not a parameter
-                                        strcat(directory, tabcmd[m]);
-                                    }
-                                }
+                                // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
                                 exit(0);
                             }
                         }
-                        execvp(*tabcmd,tabcmd);
+                        if (strstr(directory, "*")) {
+                            globbuf.gl_offs = 2;
+                            glob(directory, GLOB_DOOFFS, NULL, &globbuf);
+                            globbuf.gl_pathv[0] = *tabcmd;
+                            printf("glob\n");   
+                            sprintf(globbuf.gl_pathv[1], "%s%s", "-", parameters);
+                            printf("%s\n", globbuf.gl_pathv[0]);
+                            printf("%s\n", globbuf.gl_pathv[1]);
+                            execvp(*tabcmd, &globbuf.gl_pathv[0]);
+                        }
+                        else
+                            execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
                         wait(&status);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
-                                fathercmd = false;
                                 printf(VERT("exit status of ["));
                                 for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                                 printf(VERT("]=%d\033[0m\n"),status);
                                 if(or) break;
                             } else if(and) break;
                         } else puts(ROUGE("Anormal exit"));
+                        fathercmd = false;
                     }
                     if(tabcmd2[out][to++] == NULL) break;
                 }
@@ -151,5 +165,6 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
+    globfree(&globbuf);
     exit(0);
 }

@@ -100,7 +100,6 @@ int maxSizeInRep(char *direct) {
     perror("opendir");
     exit(1);
   }
-  printf("maxSize\n");
 
   while ((ptr = readdir(dir)) != NULL) {
     printf("maxSize boucle\n");
@@ -118,7 +117,7 @@ int maxSizeInRep(char *direct) {
     printf("%s\n", buffer);
     // erreur ici pour le -R
     if (fstatat(dirfd(dir), buffer, &fst, AT_SYMLINK_NOFOLLOW) == -1) {
-      perror("stat");
+      perror("fstatat maxSizeInRep");
       exit(1);
     }
 
@@ -131,7 +130,6 @@ int maxSizeInRep(char *direct) {
     perror("close dir");
     exit(1);
   }
-  printf("fin maxSize\n");
 
   if (buffer)
     free(buffer);
@@ -140,7 +138,6 @@ int maxSizeInRep(char *direct) {
 
 
 void myls(char * directory, char * parameters) {
-    printf("myls\n");
     if (strcmp(directory, "") == 0) directory = ".";
     struct stat fst;
     struct tm *mytime;

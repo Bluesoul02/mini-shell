@@ -1,4 +1,5 @@
 #include "global.h"
+#include <glob.h>
 
 void init();
 void printDirectory();
