@@ -159,6 +159,5 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
-    globfree(&globbuf);
     exit(0);
 }
