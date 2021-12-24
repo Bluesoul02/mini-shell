@@ -2,4 +2,4 @@
 
 void pipedExec(char** parsed, char** parsedpipe);
 
-int isPiped(char* str, char** strpiped);
+int isNotPiped(char ** str, char** strpiped, int cmd_size);

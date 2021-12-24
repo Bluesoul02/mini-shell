@@ -56,18 +56,24 @@ void pipedExec(char** parsed, char** parsedpipe)
 }
 
 // check if str contain a pipe
-int isPiped(char* str, char** strpiped)
+int isNotPiped(char ** tabcmd, char** str_piped, int cmd_size)
 {
     int i;
-    for (i = 0; i < 2; i++) {
-        strpiped[i] = strsep(&str, "|");
-        if (strpiped[i] == NULL)
-            break;
+    int c = 0;
+    bool pipe = false;
+    // we search for a pipe
+    for (i = 0; i < cmd_size; i++) {
+        printf("%s\n", tabcmd[i]);
+        if (strstr(tabcmd[i], "|"))
+            pipe = true;
+        if (pipe) {
+            printf("pipe");
+            // we copy the content after the pipe
+            str_piped[c++] = tabcmd[i];
+        }
     }
-  
-    if (strpiped[1] == NULL)
-        return 0; // returns zero if no pipe is found.
-    else {
-        return 1;
-    }
+    if (pipe)
+        return c; // return the size if a pipe was found
+    else
+        return 0;
 }

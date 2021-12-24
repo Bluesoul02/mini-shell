@@ -56,7 +56,8 @@ int requiredLine() {
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
     bool using_parameters = false;
-    char * str_piped;
+    char * str_piped[100];
+    int pipe_size = 0;
     
     int shmid;
     int * shm;
@@ -102,6 +103,7 @@ int requiredLine() {
                         tabcmd[index] = NULL;
                         or = 1;
                     }
+
                     if (strcmp(*tabcmd2[j], "cd") == 0) {
                         fathercmd = true; // the father executed the cmd
                         if (tabcmd2[j][1] == NULL) mycd("~"); // if no directory is set we cd to home directory
@@ -111,13 +113,19 @@ int requiredLine() {
                         fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
                     }
-
-                    printf("%s", tabcmd[index]);
-                    if (isPiped(tabcmd[index], str_piped)) {
-                        printf("pipe");
-                        // TO DO split/parse str_piped
-                        //pipedExec(tabcmd[index], ); + le result d'au dessus
+                    
+                    printf("%s\n", *tabcmd2[j]);
+                    if ((pipe_size = isNotPiped(*tabcmd2, str_piped, out)) > 0) {
+                        printf("piped\n");
+                        printf("%c\n", pipe_size);
+                        //pipedExec(tabcmd[j], str_piped);
+                        for(int v = 0; v < pipe_size; v++) {
+                            printf("%s", str_piped[v]);
+                        }
+                        out = out - pipe_size;
+                        pipe_size = 0; // a deplacer je pense
                     }
+                    printf("%d\n", out);
 
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
