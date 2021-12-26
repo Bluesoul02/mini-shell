@@ -413,7 +413,7 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
       }
       write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
       close(p[1]);
-      return 2;
+      return 47;
     }
   } else if(strcmp("unset",*tab) == 0) {
     if(size != 2) {
@@ -421,7 +421,8 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
       return 0;
     }
     write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
-    return 3;
+    close(p[1]);
+    return 57;
   }
   close(p[1]);
 }

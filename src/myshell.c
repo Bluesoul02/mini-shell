@@ -100,6 +100,10 @@ int requiredLine() {
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
                         tabcmd[index++] = tabcmd2[j][to++];
+                        if(index>1 && strcmp(tabcmd[index-2],"unset") && isVariable(tabcmd[index-1])) {
+                            char *tempVar = valVariable(tabcmd[index-1], localVars);
+                            if(tempVar) strcpy(tabcmd[index-1],tempVar);
+                        }
                     }
                     if(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) == 0) { // in the case of multiple commands linked conditionally, execute each command separately one after the other
                         tabcmd[index] = NULL;
@@ -151,11 +155,11 @@ int requiredLine() {
                         wait(&status);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
-                                if(status == 2) {
+                                if(status == 47) {
                                     char infos[BUFFER_SIZE];
                                     read(p[0],infos,sizeof(char) * BUFFER_SIZE);
                                     status = setLocalVariable(infos, localVars);
-                                } else if(status == 3) {
+                                } else if(status == 57) {
                                     char infos[BUFFER_SIZE];
                                     read(p[0],infos,sizeof(char) * BUFFER_SIZE);
                                     status = unsetLocalVariable(infos, localVars);
