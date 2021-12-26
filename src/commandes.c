@@ -335,7 +335,6 @@ int setLocalVariable(char * infos, Liste *liste) {
   value[y]='\0';
 
   if(variableExists(name,liste)) {
-    printf("Exists");
     free(name);
     free(value);
     return 1;
@@ -362,6 +361,30 @@ int setLocalVariable(char * infos, Liste *liste) {
   lVar->precedent = NULL;
   if(liste->variable) liste->variable->precedent = lVar;
   liste->variable = lVar;
+  return 0;
+}
+
+int unsetLocalVariable(char * name, Liste *liste) {
+  name++;
+  if (liste == NULL) exit(EXIT_FAILURE);
+  Variable *actuel = liste->variable;
+
+  while (actuel != NULL) {
+      if(strcmp(name,actuel->name)==0) break;
+      actuel = actuel->suivant;
+  }
+  if(actuel != NULL) {
+      if(actuel==liste->variable) {
+          liste->variable = actuel->suivant;
+          if(liste->variable) liste->variable->precedent=NULL;
+      } else actuel->precedent->suivant = actuel->suivant;
+      if(actuel->suivant) {
+          actuel->suivant->precedent = actuel->precedent;
+      }
+      free(actuel->name);
+      free(actuel->val);
+      free(actuel);
+  }
   return 0;
 }
 
@@ -392,6 +415,13 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
       close(p[1]);
       return 2;
     }
+  } else if(strcmp("unset",*tab) == 0) {
+    if(size != 2) {
+      close(p[1]);
+      return 0;
+    }
+    write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
+    return 3;
   }
   close(p[1]);
 }

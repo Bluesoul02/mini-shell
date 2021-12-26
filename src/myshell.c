@@ -136,7 +136,7 @@ int requiredLine() {
                                 exit(0);
                             }
                         }
-                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0) {
+                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) {
                             int retour = manageVariables(p,tabcmd,index,localVars);
                             freeVariables(localVars);
                             exit(retour);
@@ -155,6 +155,10 @@ int requiredLine() {
                                     char infos[BUFFER_SIZE];
                                     read(p[0],infos,sizeof(char) * BUFFER_SIZE);
                                     status = setLocalVariable(infos, localVars);
+                                } else if(status == 3) {
+                                    char infos[BUFFER_SIZE];
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE);
+                                    status = unsetLocalVariable(infos, localVars);
                                 }
                                 close(p[0]);
                                 printf(VERT("exit status of ["));

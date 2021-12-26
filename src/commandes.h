@@ -46,3 +46,5 @@ char *valVariable(char * var, Liste *liste);
 void freeVariables(Liste *liste);
 
 int variableExists(char * name, Liste *liste);
+
+int unsetLocalVariable(char * name, Liste *liste);
