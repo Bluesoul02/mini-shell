@@ -241,24 +241,24 @@ void myls(char * directory, char * parameters) {
         free(buffer);
 }
 
-int is_joker(char c) {
+int is_joker(char c) { // the instruction is a wildcard
   if (c == '*' || c == '?' || c == '[') return 1;
   return 0;
 }
 
 int myglob(glob_t globbuf, char *tab[BUFFER_SIZE], int limit) {
   int count=0, joker=0, index[100], count2=0, jokers[100];
-  for(int x=0; x<limit; x++) {
+  for(int x=0; x<limit; x++) { // check if there is wildcards in instruction
     for(int y=0; y<strlen(tab[x]); y++) if(is_joker(tab[x][y])) {
       joker=1;
       break;
     }
-    if(joker) jokers[count2++] = x;
+    if(joker) jokers[count2++] = x; // jokers to manage
     else index[count++] = x;
     joker=0;
   }
-  globbuf.gl_offs = count;
-  for(int x=0; x<count2; x++) {
+  globbuf.gl_offs = count; // set empty space at the beginning of the array for the command
+  for(int x=0; x<count2; x++) { // manage jokers
     if(x==0) glob(tab[jokers[x]], GLOB_DOOFFS, NULL, &globbuf);
     else glob(tab[jokers[x]], GLOB_DOOFFS | GLOB_APPEND, NULL, &globbuf);
   }
@@ -267,17 +267,17 @@ int myglob(glob_t globbuf, char *tab[BUFFER_SIZE], int limit) {
       globfree(&globbuf);
       return 0;
     }
-    for(int x=0; x<count; x++) globbuf.gl_pathv[x] = tab[index[x]];
-    execvp(globbuf.gl_pathv[0], &globbuf.gl_pathv[0]);
+    for(int x=0; x<count; x++) globbuf.gl_pathv[x] = tab[index[x]]; // put command into empty space
+    execvp(globbuf.gl_pathv[0], &globbuf.gl_pathv[0]); // execute the command with wildcards
   }
   return 1;
 }
 
-int isVariable(char * val) {
+int isVariable(char * val) { // check if we call a variable
   return *val == '$';
 }
 
-char *valVariable(char * var, Liste *liste) {
+char *valVariable(char * var, Liste *liste) { // get the value of a variable
   var++;
   Variable *v = liste->variable;
   while(v!=NULL) {
@@ -286,7 +286,7 @@ char *valVariable(char * var, Liste *liste) {
   }
 }
 
-void allVariables(Liste *liste) {
+void allVariables(Liste *liste) { // print all local variables
   if(liste == NULL) exit(EXIT_FAILURE);
   Variable *v = liste->variable;
   if(v == NULL) return;
@@ -297,7 +297,7 @@ void allVariables(Liste *liste) {
   }
 }
 
-void freeVariables(Liste *liste) {
+void freeVariables(Liste *liste) { // free variables
   Variable *v = liste->variable;
   if(v != NULL) {
     while(v->suivant) {
@@ -314,7 +314,7 @@ void freeVariables(Liste *liste) {
   return;
 }
 
-int variableExists(char * name, Liste *liste) {
+int variableExists(char * name, Liste *liste) { // check if the variable with this name exists
   Variable *v = liste->variable;
   while(v!=NULL) {
     if(strcmp(name,v->name) == 0) return 1;
@@ -323,7 +323,7 @@ int variableExists(char * name, Liste *liste) {
   return 0;
 }
 
-int setLocalVariable(char * infos, Liste *liste) {
+int setLocalVariable(char * infos, Liste *liste) { // set a local variable
   char *name = malloc(sizeof(char)* MAX);
   char *value = malloc(sizeof(char)* MAX);
   int x=0, y=0;
@@ -334,13 +334,13 @@ int setLocalVariable(char * infos, Liste *liste) {
   while(x<strlen(infos)) value[y++] = infos[x++];
   value[y]='\0';
 
-  if(variableExists(name,liste)) {
+  if(variableExists(name,liste)) { // check if the variable with this name exists
     free(name);
     free(value);
     return 1;
   }
 
-  if(isVariable(value)) {
+  if(isVariable(value)) { // check if we want to affect a variable with the value of an other variable
     char *tempVar = valVariable(value, liste);
     if(!tempVar) {
       free(name);
@@ -359,12 +359,12 @@ int setLocalVariable(char * infos, Liste *liste) {
   free(value);
   lVar->suivant = liste->variable;
   lVar->precedent = NULL;
-  if(liste->variable) liste->variable->precedent = lVar;
+  if(liste->variable) liste->variable->precedent = lVar; // add the variable to the list of existing variables
   liste->variable = lVar;
   return 0;
 }
 
-int unsetLocalVariable(char * name, Liste *liste) {
+int unsetVariable(char * name, Liste *liste) { // unset a variable = remove from the list of existing variables
   name++;
   if (liste == NULL) exit(EXIT_FAILURE);
   Variable *actuel = liste->variable;
@@ -391,11 +391,11 @@ int unsetLocalVariable(char * name, Liste *liste) {
 int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
   close(p[0]);
   if(strcmp("set",*tab) == 0) {
-    if(size == 1) {
+    if(size == 1) { // we want to see the list of all variables
       allVariables(liste);
       close(p[1]);
       return 0;
-    } else {
+    } else { // we want to set a local variable, we check if the informations given are correct
       char name[BUFFER_SIZE];
       int x=0, y=0;
       while(x<strlen(tab[1]) && tab[1][x]!='=') name[y++] = tab[1][x++];
@@ -411,16 +411,16 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
         close(p[1]);
         return 0;
       }
-      write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
+      write(p[1],tab[1],sizeof(char) * BUFFER_SIZE); // send informations from the pipe
       close(p[1]);
       return 47;
     }
-  } else if(strcmp("unset",*tab) == 0) {
+  } else if(strcmp("unset",*tab) == 0) { // we want to unset a local variable
     if(size != 2) {
       close(p[1]);
       return 0;
     }
-    write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
+    write(p[1],tab[1],sizeof(char) * BUFFER_SIZE); // send informations from the pipe
     close(p[1]);
     return 57;
   }

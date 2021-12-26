@@ -22,7 +22,7 @@ void printDirectory() {
 
 void loop() {
     printDirectory();
-    requiredLine();
+    requiredLine(); // waiting for input
 }
 
 /**
@@ -65,7 +65,7 @@ int requiredLine() {
 
     shm = getMemSegment(2905, &shmid);
 
-    Liste* localVars = malloc(sizeof(*localVars));
+    Liste* localVars = malloc(sizeof(*localVars)); // local variables
     localVars->variable = NULL;
 
     char * parameters = malloc(100 * sizeof(char)); // parameters of the command
@@ -98,9 +98,9 @@ int requiredLine() {
                     int p[2];
                     if (pipe(p)==ERR) fatalsyserror(1);;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
-                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
+                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) { // separate each instruction
                         tabcmd[index++] = tabcmd2[j][to++];
-                        if(index>1 && strcmp(tabcmd[index-2],"unset") && isVariable(tabcmd[index-1])) {
+                        if(index>1 && strcmp(tabcmd[index-2],"unset") && isVariable(tabcmd[index-1])) { // check to replace the value with the value of an existing variable
                             char *tempVar = valVariable(tabcmd[index-1], localVars);
                             if(tempVar) strcpy(tabcmd[index-1],tempVar);
                         }
@@ -108,7 +108,7 @@ int requiredLine() {
                     if(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) == 0) { // in the case of multiple commands linked conditionally, execute each command separately one after the other
                         tabcmd[index] = NULL;
                         and = 1;
-                    } else if(tabcmd2[j][to] != NULL &&strcmp("||",tabcmd2[j][to]) == 0) {
+                    } else if(tabcmd2[j][to] != NULL && strcmp("||",tabcmd2[j][to]) == 0) {
                         tabcmd[index] = NULL;
                         or = 1;
                     }
@@ -140,13 +140,14 @@ int requiredLine() {
                                 exit(0);
                             }
                         }
-                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) {
-                            int retour = manageVariables(p,tabcmd,index,localVars);
+                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) { // set local or environment variable
+                            free(directory);
+                            int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
                             freeVariables(localVars);
                             exit(retour);
                         }
                         freeVariables(localVars);
-                        if(!myglob(globbuf, tabcmd,index)) exit(0);
+                        if(!myglob(globbuf, tabcmd,index)) exit(0); // check for wildcards
                         execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
@@ -155,14 +156,14 @@ int requiredLine() {
                         wait(&status);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
-                                if(status == 47) {
+                                if(status == 47) { // the son wants to create local variable
                                     char infos[BUFFER_SIZE];
-                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE);
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
                                     status = setLocalVariable(infos, localVars);
-                                } else if(status == 57) {
+                                } else if(status == 57) { // the son wants to delete local variable
                                     char infos[BUFFER_SIZE];
-                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE);
-                                    status = unsetLocalVariable(infos, localVars);
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
+                                    status = unsetVariable(infos, localVars);
                                 }
                                 close(p[0]);
                                 printf(VERT("exit status of ["));

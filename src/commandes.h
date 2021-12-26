@@ -47,4 +47,4 @@ void freeVariables(Liste *liste);
 
 int variableExists(char * name, Liste *liste);
 
-int unsetLocalVariable(char * name, Liste *liste);
+int unsetVariable(char * name, Liste *liste);
