@@ -326,7 +326,6 @@ int setLocalVariable(char * infos, Liste *liste) {
   value[y]='\0';
 
   if(isVariable(value)) {
-    if(!(value = valVariable(value, liste))) return 1;
     char *tempVar = valVariable(value, liste);
     if(!tempVar) return 1;
     else strcpy(value,tempVar);

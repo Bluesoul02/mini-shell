@@ -17,6 +17,7 @@ void init() { // Clearing and initializing the shell
 void printDirectory() {
     char * buff = getcwd(NULL, 0);
     printf("%s>", buff);
+    free(buff);
 }
 
 void loop() {
