@@ -33,7 +33,7 @@ int myglob(glob_t globbuf, char * tab[], int limit);
 
 void myexit();
 
-void setLocalVariable(char * infos, Liste *liste);
+int setLocalVariable(char * infos, Liste *liste);
 
 int manageVariables(int p[2], char * tab[], int size, Liste *liste);
 

@@ -16,6 +16,7 @@
 #define FAILED_EXEC 127
 #define LGCMD_SIZE 4096 
 #define BUFFER_SIZE 1024
+#define MAX 200
 
 #define clear() printf("\e[1;1H\e[2J")
 #define syserror(x) perror(errormsg[x])

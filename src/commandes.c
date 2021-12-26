@@ -302,34 +302,48 @@ void freeVariables(Liste *liste) {
   if(v != NULL) {
     while(v->suivant) {
       v=v->suivant;
+      free(v->precedent->name);
+      free(v->precedent->val);
       free(v->precedent);
     }
+    free(v->name);
+    free(v->val);
     free(v);
   }
   free(liste);
   return;
 }
 
-void setLocalVariable(char * infos, Liste *liste) {
-  char name[BUFFER_SIZE];
+int setLocalVariable(char * infos, Liste *liste) {
+  char *name = malloc(sizeof(char)* MAX);
+  char *value = malloc(sizeof(char)* MAX);
   int x=0, y=0;
   while(x<strlen(infos) && infos[x]!='=') name[y++] = infos[x++];
   name[y]='\0';
   y=0;
   x++;
-  char value[BUFFER_SIZE];
   while(x<strlen(infos)) value[y++] = infos[x++];
   value[y]='\0';
 
-  if(isVariable(value)) valVariable(value, liste);
+  if(isVariable(value)) {
+    if(!(value = valVariable(value, liste))) return 1;
+    char *tempVar = valVariable(value, liste);
+    if(!tempVar) return 1;
+    else strcpy(value,tempVar);
+  }
   Variable *lVar = malloc(sizeof(*lVar));
   if(liste == NULL || lVar == NULL) exit(EXIT_FAILURE);
-  lVar->name = name;
-  lVar->val = value;
+  lVar->name = malloc(MAX*sizeof(char));
+  strcpy(lVar->name, name);
+  free(name);
+  lVar->val = malloc(MAX*sizeof(char));
+  strcpy(lVar->val, value);
+  free(value);
   lVar->suivant = liste->variable;
   lVar->precedent = NULL;
   if(liste->variable) liste->variable->precedent = lVar;
   liste->variable = lVar;
+  return 0;
 }
 
 int manageVariables(int p[2], char * tab[], int size, Liste *liste) {

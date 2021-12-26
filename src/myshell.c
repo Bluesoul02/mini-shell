@@ -131,15 +131,11 @@ int requiredLine() {
                                 }
                                 // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
-                                free(parameters);
-                                free(directory);
                                 freeVariables(localVars);
                                 exit(0);
                             }
                         }
-                        free(parameters);
-                        free(directory);
-                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd)) {
+                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0) {
                             int retour = manageVariables(p,tabcmd,index,localVars);
                             freeVariables(localVars);
                             exit(retour);
@@ -157,7 +153,7 @@ int requiredLine() {
                                 if(status == 2) {
                                     char infos[BUFFER_SIZE];
                                     read(p[0],infos,sizeof(char) * BUFFER_SIZE);
-                                    setLocalVariable(infos, localVars);
+                                    status = setLocalVariable(infos, localVars);
                                 }
                                 close(p[0]);
                                 printf(VERT("exit status of ["));
