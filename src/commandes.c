@@ -314,6 +314,15 @@ void freeVariables(Liste *liste) {
   return;
 }
 
+int variableExists(char * name, Liste *liste) {
+  Variable *v = liste->variable;
+  while(v!=NULL) {
+    if(strcmp(name,v->name) == 0) return 1;
+    v=v->suivant;
+  }
+  return 0;
+}
+
 int setLocalVariable(char * infos, Liste *liste) {
   char *name = malloc(sizeof(char)* MAX);
   char *value = malloc(sizeof(char)* MAX);
@@ -325,9 +334,20 @@ int setLocalVariable(char * infos, Liste *liste) {
   while(x<strlen(infos)) value[y++] = infos[x++];
   value[y]='\0';
 
+  if(variableExists(name,liste)) {
+    printf("Exists");
+    free(name);
+    free(value);
+    return 1;
+  }
+
   if(isVariable(value)) {
     char *tempVar = valVariable(value, liste);
-    if(!tempVar) return 1;
+    if(!tempVar) {
+      free(name);
+      free(value);
+      return 1;
+    }
     else strcpy(value,tempVar);
   }
   Variable *lVar = malloc(sizeof(*lVar));

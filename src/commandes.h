@@ -44,3 +44,5 @@ int isVariable(char * val);
 char *valVariable(char * var, Liste *liste);
 
 void freeVariables(Liste *liste);
+
+int variableExists(char * name, Liste *liste);
