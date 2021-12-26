@@ -17,6 +17,7 @@ void init() { // Clearing and initializing the shell
 void printDirectory() {
     char * buff = getcwd(NULL, 0);
     printf("%s>", buff);
+    free(buff);
 }
 
 void loop() {
@@ -64,6 +65,9 @@ int requiredLine() {
 
     shm = getMemSegment(2905, &shmid);
 
+    Liste* localVars = malloc(sizeof(*localVars));
+    localVars->variable = NULL;
+
     char * parameters = malloc(100 * sizeof(char)); // parameters of the command
     char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
 
@@ -91,6 +95,8 @@ int requiredLine() {
                     parameters = "";
                     index=0;
                     glob_t globbuf;
+                    int p[2];
+                    if (pipe(p)==ERR) fatalsyserror(1);;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
                         tabcmd[index++] = tabcmd2[j][to++];
@@ -126,18 +132,31 @@ int requiredLine() {
                                 }
                                 // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
+                                freeVariables(localVars);
                                 exit(0);
                             }
                         }
+                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0) {
+                            int retour = manageVariables(p,tabcmd,index,localVars);
+                            freeVariables(localVars);
+                            exit(retour);
+                        }
+                        freeVariables(localVars);
                         if(!myglob(globbuf, tabcmd,index)) exit(0);
                         execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
+                        close(p[1]);
                         wait(&status);
-                        globfree(&globbuf);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
+                                if(status == 2) {
+                                    char infos[BUFFER_SIZE];
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE);
+                                    status = setLocalVariable(infos, localVars);
+                                }
+                                close(p[0]);
                                 printf(VERT("exit status of ["));
                                 for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                                 printf(VERT("]=%d\033[0m\n"),status);
@@ -159,5 +178,6 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
+    freeVariables(localVars);
     exit(0);
 }

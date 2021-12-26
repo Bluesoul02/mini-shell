@@ -263,9 +263,135 @@ int myglob(glob_t globbuf, char *tab[BUFFER_SIZE], int limit) {
     else glob(tab[jokers[x]], GLOB_DOOFFS | GLOB_APPEND, NULL, &globbuf);
   }
   if(count2) {
-    if(!globbuf.gl_pathc) return 0;
+    if(!globbuf.gl_pathc) {
+      globfree(&globbuf);
+      return 0;
+    }
     for(int x=0; x<count; x++) globbuf.gl_pathv[x] = tab[index[x]];
     execvp(globbuf.gl_pathv[0], &globbuf.gl_pathv[0]);
   }
   return 1;
+}
+
+int isVariable(char * val) {
+  return *val == '$';
+}
+
+char *valVariable(char * var, Liste *liste) {
+  var++;
+  Variable *v = liste->variable;
+  while(v!=NULL) {
+    if(strcmp(var,v->name) == 0) return v->val;
+    v=v->suivant;
+  }
+}
+
+void allVariables(Liste *liste) {
+  if(liste == NULL) exit(EXIT_FAILURE);
+  Variable *v = liste->variable;
+  if(v == NULL) return;
+  printf("Local variables :\n");
+  while(v!=NULL) {
+    printf("%s=%s\n",v->name,v->val);
+    v=v->suivant;
+  }
+}
+
+void freeVariables(Liste *liste) {
+  Variable *v = liste->variable;
+  if(v != NULL) {
+    while(v->suivant) {
+      v=v->suivant;
+      free(v->precedent->name);
+      free(v->precedent->val);
+      free(v->precedent);
+    }
+    free(v->name);
+    free(v->val);
+    free(v);
+  }
+  free(liste);
+  return;
+}
+
+int variableExists(char * name, Liste *liste) {
+  Variable *v = liste->variable;
+  while(v!=NULL) {
+    if(strcmp(name,v->name) == 0) return 1;
+    v=v->suivant;
+  }
+  return 0;
+}
+
+int setLocalVariable(char * infos, Liste *liste) {
+  char *name = malloc(sizeof(char)* MAX);
+  char *value = malloc(sizeof(char)* MAX);
+  int x=0, y=0;
+  while(x<strlen(infos) && infos[x]!='=') name[y++] = infos[x++];
+  name[y]='\0';
+  y=0;
+  x++;
+  while(x<strlen(infos)) value[y++] = infos[x++];
+  value[y]='\0';
+
+  if(variableExists(name,liste)) {
+    printf("Exists");
+    free(name);
+    free(value);
+    return 1;
+  }
+
+  if(isVariable(value)) {
+    char *tempVar = valVariable(value, liste);
+    if(!tempVar) {
+      free(name);
+      free(value);
+      return 1;
+    }
+    else strcpy(value,tempVar);
+  }
+  Variable *lVar = malloc(sizeof(*lVar));
+  if(liste == NULL || lVar == NULL) exit(EXIT_FAILURE);
+  lVar->name = malloc(MAX*sizeof(char));
+  strcpy(lVar->name, name);
+  free(name);
+  lVar->val = malloc(MAX*sizeof(char));
+  strcpy(lVar->val, value);
+  free(value);
+  lVar->suivant = liste->variable;
+  lVar->precedent = NULL;
+  if(liste->variable) liste->variable->precedent = lVar;
+  liste->variable = lVar;
+  return 0;
+}
+
+int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
+  close(p[0]);
+  if(strcmp("set",*tab) == 0) {
+    if(size == 1) {
+      allVariables(liste);
+      close(p[1]);
+      return 0;
+    } else {
+      char name[BUFFER_SIZE];
+      int x=0, y=0;
+      while(x<strlen(tab[1]) && tab[1][x]!='=') name[y++] = tab[1][x++];
+      if(y==0) {
+        close(p[1]);
+        return 0;
+      }
+      y=0;
+      x++;
+      char value[BUFFER_SIZE];
+      while(x<strlen(tab[1])) value[y++] = tab[1][x++];
+      if(y==0) {
+        close(p[1]);
+        return 0;
+      }
+      write(p[1],tab[1],sizeof(char) * BUFFER_SIZE);
+      close(p[1]);
+      return 2;
+    }
+  }
+  close(p[1]);
 }
