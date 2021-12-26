@@ -356,7 +356,7 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
       char name[BUFFER_SIZE];
       int x=0, y=0;
       while(x<strlen(tab[1]) && tab[1][x]!='=') name[y++] = tab[1][x++];
-      if(name=="") {
+      if(y==0) {
         close(p[1]);
         return 0;
       }
@@ -364,7 +364,7 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
       x++;
       char value[BUFFER_SIZE];
       while(x<strlen(tab[1])) value[y++] = tab[1][x++];
-      if(value=="") {
+      if(y==0) {
         close(p[1]);
         return 0;
       }
