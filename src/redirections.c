@@ -36,17 +36,18 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
         char * str_piped[100];
         char * str[100];
         int size;
+        int c = 1;
         while (pipe) {
-
+            c++;
             if ((size = isPiped(parsedpipe, str_piped, pipe_size, str)) > 0) {
-                //printf("more pipe\n");
+                // printf("more pipe\n");
 
                 // child
                 // it needs to read and write
                 if (fork() == 0) {
-                    dup2(pipefd[1], STDOUT_FILENO);
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
+                    dup2(pipefd[1], STDOUT_FILENO);
                     close(pipefd[1]);
 
                     execvp(str[0], str);
@@ -59,7 +60,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                 }
                 pipe_size = size;
             } else {
-                //printf("no more pipe\n");
+                // printf("no more pipe\n");
                 pipe = false;
 
                 p2 = fork();
@@ -68,6 +69,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     printf("Could not fork\n");
                     return;
                 }
+                
                 // child
                 // it only needs to read
                 if (p2 == 0) {
@@ -75,7 +77,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
 
-                    execvp(parsedpipe[0], parsedpipe);
+                    execvp(str[0], str);
                     exit(FAILED_EXEC);
                 }
                 else {
@@ -84,8 +86,10 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     close(pipefd[0]);
                     // printf("father's waiting...\n");
                     // parent executing, waiting for two children
-                    wait(NULL);
-                    wait(NULL);
+                    for (int v = 0; v < c; v++) {
+                        // printf("wait...\n");
+                        wait(NULL);
+                    }
                 }
             }
         }
