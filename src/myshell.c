@@ -16,11 +16,12 @@ void init() { // Clearing and initializing the shell
 void printDirectory() {
     char * buff = getcwd(NULL, 0);
     printf("%s>", buff);
+    free(buff);
 }
 
 void loop() {
     printDirectory();
-    requiredLine();
+    requiredLine(); // waiting for input
 }
 
 /**
@@ -56,13 +57,20 @@ int requiredLine() {
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
     bool using_parameters = false;
+    // contain command that will be executed after the command contained in str
     char * str_piped[100];
+    // contain the first command in a pipeline
+    char * str[100];
+    // size of str_piped
     int pipe_size = 0;
     
     int shmid;
     int * shm;
 
     shm = getMemSegment(2905, &shmid);
+
+    Liste* localVars = malloc(sizeof(*localVars)); // local variables
+    localVars->variable = NULL;
 
     char * parameters = malloc(100 * sizeof(char)); // parameters of the command
     char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
@@ -91,15 +99,20 @@ int requiredLine() {
                     parameters = "";
                     index=0;
                     glob_t globbuf;
+                    int p[2];
+                    if (pipe(p)==ERR) fatalsyserror(1);;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
-
-                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) {
+                    while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) { // separate each instruction
                         tabcmd[index++] = tabcmd2[j][to++];
+                        if(index>1 && strcmp(tabcmd[index-2],"unset") && isVariable(tabcmd[index-1])) { // check to replace the value with the value of an existing variable
+                            char *tempVar = valVariable(tabcmd[index-1], localVars);
+                            if(tempVar) strcpy(tabcmd[index-1],tempVar);
+                        }
                     }
                     if(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) == 0) { // in the case of multiple commands linked conditionally, execute each command separately one after the other
                         tabcmd[index] = NULL;
                         and = 1;
-                    } else if(tabcmd2[j][to] != NULL &&strcmp("||",tabcmd2[j][to]) == 0) {
+                    } else if(tabcmd2[j][to] != NULL && strcmp("||",tabcmd2[j][to]) == 0) {
                         tabcmd[index] = NULL;
                         or = 1;
                     }
@@ -114,18 +127,22 @@ int requiredLine() {
                         myexit(tabcmd2[j][1]);
                     }
                     
-                    printf("%s\n", *tabcmd2[j]);
-                    if ((pipe_size = isNotPiped(*tabcmd2, str_piped, out)) > 0) {
-                        printf("piped\n");
-                        printf("%c\n", pipe_size);
-                        //pipedExec(tabcmd[j], str_piped);
+                    if ((pipe_size = isNotPiped(tabcmd2[j], str_piped, index, str)) > 0) {
+                        //printf("piped\n");
                         for(int v = 0; v < pipe_size; v++) {
-                            printf("%s", str_piped[v]);
+                            printf("%s\n", str_piped[v]);
                         }
-                        out = out - pipe_size;
-                        pipe_size = 0; // a deplacer je pense
+                        index = (index - pipe_size) - 1;
+                        for(int v = 0; v < index; v++) {
+                             printf("%s\n", str[v]);
+                        }
+                        pipedExec(str, str_piped);
+                        printf("end pipedExec");
+
+                        // end of pipelines
+                        pipe_size = 0;
+                        fathercmd = true;
                     }
-                    printf("%d\n", out);
 
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
@@ -142,18 +159,36 @@ int requiredLine() {
                                 }
                                 // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
+                                freeVariables(localVars);
                                 exit(0);
                             }
                         }
-                        if(!myglob(globbuf, tabcmd,index)) exit(0);
+                        if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) { // set local or environment variable
+                            free(directory);
+                            int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
+                            freeVariables(localVars);
+                            exit(retour);
+                        }
+                        freeVariables(localVars);
+                        if(!myglob(globbuf, tabcmd,index)) exit(0); // check for wildcards
                         execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
+                        close(p[1]);
                         wait(&status);
-                        globfree(&globbuf);
                         if(WIFEXITED(status)){ // print the commmand status
                             if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
+                                if(status == 47) { // the son wants to create local variable
+                                    char infos[BUFFER_SIZE];
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
+                                    status = setLocalVariable(infos, localVars);
+                                } else if(status == 57) { // the son wants to delete local variable
+                                    char infos[BUFFER_SIZE];
+                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
+                                    status = unsetVariable(infos, localVars);
+                                }
+                                close(p[0]);
                                 printf(VERT("exit status of ["));
                                 for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
                                 printf(VERT("]=%d\033[0m\n"),status);
@@ -175,5 +210,6 @@ int requiredLine() {
     shmctl(shmid, IPC_RMID, NULL);
     free(parameters);
     free(directory);
+    freeVariables(localVars);
     exit(0);
 }

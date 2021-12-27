@@ -3,6 +3,7 @@
 // function where the piped system commands is executed
 void pipedExec(char** parsed, char** parsedpipe)
 {
+    printf("piped Exec");
     // 0 is read, 1 is write
     int pipefd[2]; 
     pid_t p1, p2;
@@ -25,9 +26,10 @@ void pipedExec(char** parsed, char** parsedpipe)
         close(pipefd[1]);
   
         if (execvp(parsed[0], parsed) < 0) {
-            printf("\nCould not execute command 1..");
+            printf("\nCould not execute command 1..\n");
             exit(0);
         }
+        printf("end p1");
     } else {
         // father
         p2 = fork();
@@ -44,10 +46,11 @@ void pipedExec(char** parsed, char** parsedpipe)
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
             if (execvp(parsedpipe[0], parsedpipe) < 0) {
-                printf("\nCould not execute command 2..");
+                printf("\nCould not execute command 2..\n");
                 exit(0);
             }
         } else {
+            printf("father waiting...");
             // parent executing, waiting for two children
             wait(NULL);
             wait(NULL);
@@ -56,20 +59,22 @@ void pipedExec(char** parsed, char** parsedpipe)
 }
 
 // check if str contain a pipe
-int isNotPiped(char ** tabcmd, char** str_piped, int cmd_size)
+int isNotPiped(char ** tabcmd, char** str_piped, int cmd_size, char ** str)
 {
     int i;
     int c = 0;
+    int n = 0;
     bool pipe = false;
     // we search for a pipe
     for (i = 0; i < cmd_size; i++) {
-        printf("%s\n", tabcmd[i]);
         if (strstr(tabcmd[i], "|"))
             pipe = true;
-        if (pipe) {
-            printf("pipe");
+        else if (pipe) {
             // we copy the content after the pipe
             str_piped[c++] = tabcmd[i];
+        }
+        else {
+            str[n++] = tabcmd[i];
         }
     }
     if (pipe)
