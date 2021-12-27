@@ -128,15 +128,15 @@ int requiredLine() {
                     }
                     
                     if ((pipe_size = isNotPiped(tabcmd2[j], str_piped, index, str)) > 0) {
-                        for(int v = 0; v < pipe_size; v++) {
-                            printf("%s\n", str_piped[v]);
-                        }
-                        index = (index - pipe_size) - 1;
-                        for(int v = 0; v < index; v++) {
-                             printf("%s\n", str[v]);
-                        }
+                        // for(int v = 0; v < pipe_size; v++) {
+                        //     printf("%s\n", str_piped[v]);
+                        // }
+                        // index = (index - pipe_size) - 1;
+                        // for(int v = 0; v < index; v++) {
+                        //      printf("%s\n", str[v]);
+                        // }
                         pipedExec(str, str_piped);
-                        printf("end pipedExec\n");
+                        // printf("end pipedExec\n");
 
                         // end of pipelines
                         pipe_size = 0;

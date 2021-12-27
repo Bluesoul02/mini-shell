@@ -48,9 +48,10 @@ void pipedExec(char** parsed, char** parsedpipe)
             execvp(parsedpipe[0], parsedpipe);
             exit(FAILED_EXEC);
         } else {
+            // close the pipe for the father or the childs will wait indefinitely for EOF in the pipe
             close(pipefd[1]);
             close(pipefd[0]);
-            printf("father's waiting...\n");
+            // printf("father's waiting...\n");
             // parent executing, waiting for two children
             wait(NULL);
             wait(NULL);
