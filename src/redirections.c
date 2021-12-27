@@ -3,18 +3,19 @@
 // function where the piped system commands is executed
 void pipedExec(char** parsed, char** parsedpipe)
 {
-    printf("piped Exec");
+    // printf("piped Exec\n");
+
     // 0 is read, 1 is write
     int pipefd[2]; 
     pid_t p1, p2;
   
     if (pipe(pipefd) < 0) {
-        printf("\nPipe could not be initialized");
+        printf("Pipe could not be initialized\n");
         return;
     }
     p1 = fork();
     if (p1 < 0) {
-        printf("\nCould not fork");
+        printf("Could not fork\n");
         return;
     }
   
@@ -25,17 +26,15 @@ void pipedExec(char** parsed, char** parsedpipe)
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
   
-        if (execvp(parsed[0], parsed) < 0) {
-            printf("\nCould not execute command 1..\n");
-            exit(0);
-        }
-        printf("end p1");
-    } else {
+        execvp(parsed[0], parsed);
+        exit(FAILED_EXEC);
+    } 
+    else {
         // father
         p2 = fork();
   
         if (p2 < 0) {
-            printf("\nCould not fork");
+            printf("Could not fork\n");
             return;
         }
   
@@ -45,12 +44,13 @@ void pipedExec(char** parsed, char** parsedpipe)
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
-            if (execvp(parsedpipe[0], parsedpipe) < 0) {
-                printf("\nCould not execute command 2..\n");
-                exit(0);
-            }
+
+            execvp(parsedpipe[0], parsedpipe);
+            exit(FAILED_EXEC);
         } else {
-            printf("father waiting...");
+            close(pipefd[1]);
+            close(pipefd[0]);
+            printf("father's waiting...\n");
             // parent executing, waiting for two children
             wait(NULL);
             wait(NULL);
