@@ -1,5 +1,5 @@
 #include "global.h"
 
-void pipedExec(char** parsed, char** parsedpipe);
+void pipedExec(char** parsed, char** parsedpipe, int pipe_size);
 
-int isNotPiped(char ** tabcmd, char** strpiped, int cmd_size, char ** str);
+int isPiped(char ** tabcmd, char** strpiped, int cmd_size, char ** str);
