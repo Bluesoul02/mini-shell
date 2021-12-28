@@ -1,5 +1,53 @@
 #include "redirections.h"
 
+bool redirect(char ** tabcmd, int size) {
+    bool redir = false;
+    char * type_redir;
+    char * src[100];
+    char * dest;
+
+    // we search for a pipe
+    for (int i = 0; i < size; i++) {
+                
+        if (strstr(tabcmd[i], ">")/* TO DO add other redir*/)  {
+            type_redir = tabcmd[i];
+            redir = true;
+        }
+        else if (!redir) src[i] = tabcmd[i];
+        else dest = tabcmd[i];
+    }
+
+    if (redir) {
+        // 0 is read, 1 is write    
+        int pipefd[2];
+        char buffer[4096];
+
+        if (pipe(pipefd) < 0) {
+            printf("Pipe could not be initialized\n");
+            exit(FAILED_EXEC);
+        }
+
+        if (strstr(type_redir, ">")) {
+
+
+            if (fork() == 0) {
+                int fd = open(dest, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+
+                // write the result of exec in the file
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+
+                execvp(src[0], src);
+            }
+            else {
+                // wait for the child
+                wait(NULL);
+            }
+        }
+    }
+    return redir;
+}
+
 // function where the piped system commands is executed
 void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
 {
@@ -94,6 +142,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                         // printf("wait...\n");
                         wait(NULL);
                     }
+                    exit(0);
                 }
             }
         }

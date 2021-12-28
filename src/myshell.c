@@ -126,15 +126,6 @@ int requiredLine() {
                         fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
                     }
-                    
-                    if ((pipe_size = isPiped(tabcmd2[j], str_piped, index, str)) > 0) {
-
-                        pipedExec(str, str_piped, pipe_size);
-
-                        // end of pipelines
-                        pipe_size = 0;
-                        fathercmd = true;
-                    }
 
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
@@ -155,6 +146,16 @@ int requiredLine() {
                                 exit(0);
                             }
                         }
+
+                        if (redirect(tabcmd, index)) exit(0);
+                        if ((pipe_size = isPiped(tabcmd2[j], str_piped, index, str)) > 0) {
+
+                            pipedExec(str, str_piped, pipe_size);
+
+                            // end of pipelines
+                            pipe_size = 0;
+                        }
+
                         if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) { // set local or environment variable
                             free(directory);
                             int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
