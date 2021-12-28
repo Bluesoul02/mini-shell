@@ -32,12 +32,12 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
     else {
         // father
 
-        bool pipe = true; // start as true to execute the while once
+        bool piped = true; // start as true to execute the while once
         char * str_piped[100];
         char * str[100];
         int size;
         int c = 1;
-        while (pipe) {
+        while (piped) {
             c++;
             if ((size = isPiped(parsedpipe, str_piped, pipe_size, str)) > 0) {
                 // printf("more pipe\n");
@@ -45,11 +45,13 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                 // child
                 // it needs to read and write
                 if (fork() == 0) {
+                    // printf("infinite pipe");
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
                     dup2(pipefd[1], STDOUT_FILENO);
                     close(pipefd[1]);
 
+                    // printf("infinite pipe exec");
                     execvp(str[0], str);
                     exit(FAILED_EXEC);
                 }
@@ -61,7 +63,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                 pipe_size = size;
             } else {
                 // printf("no more pipe\n");
-                pipe = false;
+                piped = false;
 
                 p2 = fork();
         
@@ -69,14 +71,16 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     printf("Could not fork\n");
                     return;
                 }
-                
+
                 // child
                 // it only needs to read
                 if (p2 == 0) {
+                    // printf("child p2\n");
                     close(pipefd[1]);
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
 
+                    // printf("child exec");
                     execvp(str[0], str);
                     exit(FAILED_EXEC);
                 }
@@ -85,7 +89,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     close(pipefd[1]);
                     close(pipefd[0]);
                     // printf("father's waiting...\n");
-                    // parent executing, waiting for two children
+                    // parent executing, waiting for childrens
                     for (int v = 0; v < c; v++) {
                         // printf("wait...\n");
                         wait(NULL);
