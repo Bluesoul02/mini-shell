@@ -1,5 +1,6 @@
 #include "global.h"
-#include <glob.h>
+#include "redirections.h"
+#include "commandes.h"
 
 void init();
 void printDirectory();

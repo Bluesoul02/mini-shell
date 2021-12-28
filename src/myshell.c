@@ -1,5 +1,4 @@
 #include "myshell.h"
-#include "commandes.h"
 
 #define CUSTOMCMD_SIZE 1
 
@@ -74,8 +73,13 @@ int requiredLine() {
     int i,j,status,in,out;
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
-    glob_t globbuf = {0};
     bool using_parameters = false;
+    // contain command that will be executed after the command contained in str
+    char * str_piped[100];
+    // contain the first command in a pipeline
+    char * str[100];
+    // size of str_piped
+    int pipe_size = 0;
     
     int shmid;
     int * shm;
@@ -136,6 +140,7 @@ int requiredLine() {
                         tabcmd[index] = NULL;
                         or = 1;
                     }
+
                     if (strcmp(*tabcmd2[j], "cd") == 0) {
                         fathercmd = true; // the father executed the cmd
                         if (tabcmd2[j][1] == NULL) mycd("~"); // if no directory is set we cd to home directory
@@ -169,6 +174,16 @@ int requiredLine() {
                                 exit(0);
                             }
                         }
+
+                        if (redirect(tabcmd, index)) exit(0);
+                        if ((pipe_size = isPiped(tabcmd2[j], str_piped, index, str)) > 0) {
+
+                            pipedExec(str, str_piped, pipe_size);
+
+                            // end of pipelines
+                            pipe_size = 0;
+                        }
+
                         if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) { // set local or environment variable
                             free(directory);
                             int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father

@@ -102,7 +102,6 @@ int maxSizeInRep(char *direct) {
   }
 
   while ((ptr = readdir(dir)) != NULL) {
-    printf("maxSize boucle\n");
 
     if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")))
       continue; // skip . and ..
