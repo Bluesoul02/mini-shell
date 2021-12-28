@@ -25,6 +25,26 @@ struct Liste {
     Variable *variable;
 };
 
+typedef enum { RUNNING = 10, STOPPED = 11 } Etat;
+
+typedef struct Job Job;
+
+struct Job {
+  char * cmd;
+  pid_t pid;
+  int jobValue;
+  Etat state;
+  int retour;
+  Job *precedent;
+  Job *suivant;
+};
+
+typedef struct Jobs Jobs;
+
+struct Jobs {
+    Job *job;
+};
+
 void mycd(char * directory);
 
 void myls(char * directory, char * parameters);
@@ -48,3 +68,13 @@ void freeVariables(Liste *liste);
 int variableExists(char * name, Liste *liste);
 
 int unsetVariable(char * name, Liste *liste);
+
+void getAllJobs(Jobs *liste);
+
+void freeJob(Jobs *liste);
+
+int setJob(char * command, pid_t pid, Jobs *liste);
+
+int unsetJob(pid_t pid, Jobs *liste);
+
+void printJob(Job *job);
