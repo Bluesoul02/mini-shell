@@ -9,7 +9,7 @@ bool redirect(char ** tabcmd, int size) {
     // we search for a pipe
     for (int i = 0; i < size; i++) {
                 
-        if (strstr(tabcmd[i], ">")/* TO DO add other redir*/)  {
+        if (strstr(tabcmd[i], ">") || strstr(tabcmd[i], ">>")/* TO DO add other redir*/)  {
             type_redir = tabcmd[i];
             redir = true;
         }
@@ -26,12 +26,26 @@ bool redirect(char ** tabcmd, int size) {
             printf("Pipe could not be initialized\n");
             exit(FAILED_EXEC);
         }
-
-        if (strstr(type_redir, ">")) {
-
+        if (strstr(type_redir, ">>")) {
 
             if (fork() == 0) {
-                int fd = open(dest, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+                int fd = open(dest, O_RDWR | O_APPEND | S_IWUSR);
+
+                // write the result of exec in the file
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+
+                execvp(src[0], src);
+            }
+            else {
+                // wait for the child
+                wait(NULL);
+            }
+        }
+        else if (strstr(type_redir, ">")) {
+
+            if (fork() == 0) {
+                int fd = open(dest, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 
                 // write the result of exec in the file
                 dup2(fd, STDOUT_FILENO);
