@@ -425,3 +425,75 @@ int manageVariables(int p[2], char * tab[], int size, Liste *liste) {
   }
   close(p[1]);
 }
+
+void getAllJobs(Jobs *liste) { // print all jobs
+  if(liste == NULL) exit(EXIT_FAILURE);
+  Job *j = liste->job;
+  if(j == NULL) return;
+  printf("Jobs :\n");
+  while(j!=NULL) {
+    if(j->state==10) printf("[%i] %d En cours d'exécution %s\n",j->jobValue,j->pid,j->cmd);
+    else printf("[%i] %d Stoppé %s\n",j->jobValue,j->pid,j->cmd);
+    j=j->suivant;
+  }
+}
+
+void freeJob(Jobs *liste) { // free jobs
+  Job *j = liste->job;
+  if(j != NULL) {
+    while(j->suivant) {
+      j=j->suivant;
+      free(j->precedent->cmd);
+      free(j->precedent);
+    }
+    free(j->cmd);
+    free(j);
+  }
+  free(liste);
+  return;
+}
+
+int setJob(char * command, pid_t pid, Jobs *liste) { // set a job
+  Job *newJob = malloc(sizeof(*newJob));
+  if(liste == NULL || newJob == NULL) exit(EXIT_FAILURE);
+  newJob->cmd = malloc(MAX*sizeof(char));
+  strcpy(newJob->cmd, command);
+  newJob->pid = pid;
+  if(liste->job) newJob->jobValue = liste->job->jobValue+1;
+  else newJob->jobValue = 1;
+  newJob->state = RUNNING;
+  newJob->suivant = liste->job;
+  newJob->precedent = NULL;
+  if(liste->job) liste->job->precedent = newJob; // add the job to the list of jobs
+  liste->job = newJob;
+  printf("[%d] %d\n",newJob->jobValue,newJob->pid);
+  return 0;
+}
+
+int unsetJob(pid_t pid, Jobs *liste) { // unset a job = remove from the list of current jobs
+  if (liste == NULL) exit(EXIT_FAILURE);
+  Job *actuel = liste->job;
+
+  while (actuel != NULL) {
+      if(actuel->pid == pid) break;
+      actuel = actuel->suivant;
+  }
+  if(actuel != NULL) {
+      if(actuel==liste->job) {
+          liste->job = actuel->suivant;
+          if(liste->job) liste->job->precedent=NULL;
+      } else actuel->precedent->suivant = actuel->suivant;
+      if(actuel->suivant) {
+          actuel->suivant->precedent = actuel->precedent;
+      }
+      free(actuel->cmd);
+      free(actuel);
+  }
+  return 0;
+}
+
+void printJob(Job *job) { // print specific job status
+  if(!job) return;
+  if(job->retour == 127) printf("%d terminé anormalement\n",job->pid);
+  else printf("%d terminé avec code code de retour %d\n",job->pid,job->retour);
+}

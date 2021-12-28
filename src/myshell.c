@@ -19,9 +19,26 @@ void printDirectory() {
     free(buff);
 }
 
+Jobs* allJobs; // jobs
+
 void loop() {
     printDirectory();
     requiredLine(); // waiting for input
+}
+
+void jobHandler(int signum) { // handler for child signal -> Remove from background jobs list
+    int wstat;
+    pid_t pid = waitpid(-1,&wstat,WNOHANG); // pid of child
+    if(!pid) return;
+    Job *j = allJobs->job; // search it from the jobs list
+    while(j!=NULL) {
+        if(pid,j->pid) break;
+        j=j->suivant;
+    }
+    if(j) { // the signal if from a child executed in background
+        printf("%s (jobs=[%d], pid=%d)\n",j->cmd,j->jobValue,j->pid);
+        unsetJob(j->pid,allJobs); // remove it from current jobs
+    }
 }
 
 /**
@@ -67,7 +84,13 @@ int requiredLine() {
     int shmid;
     int * shm;
 
+    signal(SIGCHLD,jobHandler);
     shm = getMemSegment(2905, &shmid);
+
+    allJobs = malloc(sizeof(*allJobs)); // initialize the list of jobs
+    allJobs->job = NULL;
+
+    Job *lastJob = NULL; // last job executed in foreground
 
     Liste* localVars = malloc(sizeof(*localVars)); // local variables
     localVars->variable = NULL;
@@ -94,12 +117,13 @@ int requiredLine() {
         if(i){
             if(in) tabcmd2[out][in]=NULL;
             for(j=0;j<=out;j++) { // one processus per task/command
-                int to=0,and=0,or=0,index;
+                int to=0,and=0,or=0,index,bg;
                 while(1) {
                     parameters = "";
                     index=0;
                     glob_t globbuf;
                     int p[2];
+                    bg=0; // children in background
                     if (pipe(p)==ERR) fatalsyserror(1);;
                     char *tabcmd[BUFFER_SIZE] = { NULL };
                     while(tabcmd2[j][to] != NULL && strcmp("&&",tabcmd2[j][to]) && strcmp("||",tabcmd2[j][to])) { // separate each instruction
@@ -126,7 +150,11 @@ int requiredLine() {
                         fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
                     }
-
+                    if(strcmp(tabcmd[index-1],"&")==0) { // put the son in background -> job list
+                        tabcmd[index-1] = NULL;
+                        index--;
+                        bg=1;
+                    }
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
@@ -161,6 +189,16 @@ int requiredLine() {
                             int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
                             freeVariables(localVars);
                             exit(retour);
+                        } else if(strcmp("myjobs",*tabcmd) == 0) { // see all jobs
+                            free(directory);
+                            getAllJobs(allJobs);
+                            freeVariables(localVars);
+                            exit(0);
+                        } else if(strcmp("status",*tabcmd) == 0) { // see last job executed in foreground
+                            free(directory);
+                            printJob(lastJob);
+                            freeVariables(localVars);
+                            exit(0);
                         }
                         freeVariables(localVars);
                         if(!myglob(globbuf, tabcmd,index)) exit(0); // check for wildcards
@@ -169,25 +207,48 @@ int requiredLine() {
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
                         close(p[1]);
-                        wait(&status);
-                        if(WIFEXITED(status)){ // print the commmand status
-                            if((status=WEXITSTATUS(status)) != FAILED_EXEC || fathercmd){
-                                if(status == 47) { // the son wants to create local variable
-                                    char infos[BUFFER_SIZE];
-                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
-                                    status = setLocalVariable(infos, localVars);
-                                } else if(status == 57) { // the son wants to delete local variable
-                                    char infos[BUFFER_SIZE];
-                                    read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
-                                    status = unsetVariable(infos, localVars);
-                                }
-                                close(p[0]);
-                                printf(VERT("exit status of ["));
-                                for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
-                                printf(VERT("]=%d\033[0m\n"),status);
-                                if(or) break;
-                            } else if(and) break;
-                        } else puts(ROUGE("Anormal exit"));
+                        if(!bg) {
+                            waitpid(pid,&status,WUNTRACED|WCONTINUED); // wait the current child
+                            if(lastJob) free(lastJob); // replace the last job in foreground
+                            lastJob = malloc(sizeof(*lastJob));
+                            char *cmd = malloc(MAX*sizeof(char));
+                            strcpy(cmd,"");
+                            for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
+                            strcat(cmd,"\0");
+                            lastJob->cmd = cmd;
+                            free(cmd);
+                            lastJob->pid = pid;
+                            if(WIFEXITED(status)){ // print the commmand status
+                                status=WEXITSTATUS(status);
+                                lastJob->retour = status;
+                                if(status != FAILED_EXEC || fathercmd){
+                                    if(status == 47) { // the son wants to create local variable
+                                        char infos[BUFFER_SIZE];
+                                        read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
+                                        status = setLocalVariable(infos, localVars);
+                                    } else if(status == 57) { // the son wants to delete local variable
+                                        char infos[BUFFER_SIZE];
+                                        read(p[0],infos,sizeof(char) * BUFFER_SIZE); // get informations from the pipe
+                                        status = unsetVariable(infos, localVars);
+                                    }
+                                    printf(VERT("exit status of ["));
+                                    for(ps=tabcmd;*ps;ps++) printf("%s",*ps);
+                                    printf(VERT("]=%d\033[0m\n"),status);
+                                    if(or) break;
+                                } else if(and) break;
+                            } else {
+                                lastJob->retour = status;
+                                puts(ROUGE("Anormal exit"));
+                            }
+                        } else { // the child is executed in background, append it to the job list
+                            char *cmd = malloc(MAX*sizeof(char));
+                            strcpy(cmd,"");
+                            for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
+                            strcat(cmd,"\0");
+                            setJob(cmd,pid,allJobs);
+                            free(cmd);
+                        }
+                        close(p[0]);
                         fathercmd = false;
                         using_parameters = false;
                     }
