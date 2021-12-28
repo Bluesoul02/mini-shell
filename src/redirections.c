@@ -26,79 +26,23 @@ bool redirect(char ** tabcmd, int size) {
             printf("Pipe could not be initialized\n");
             exit(FAILED_EXEC);
         }
-        if (strstr(type_redir, "2>>")) {
+        
+        if (strstr(type_redir, ">>")) {
 
             if (fork() == 0) {
                 int fd = open(dest, O_RDWR | O_APPEND | S_IWUSR);
 
-                // write the result of exec in the file
-                dup2(fd, STDERR_FILENO);
-                close(fd);
-
-                execvp(src[0], src);
-            }
-            else {
-                // wait for the child
-                wait(NULL);
-            }
-        }
-        else if (strstr(type_redir, "&>>")) {
-
-            if (fork() == 0) {
-                int fd = open(dest, O_RDWR | O_APPEND | S_IWUSR);
-
-                // write the result of exec in the file
-                dup2(fd, STDERR_FILENO);
-                dup2(fd, STDOUT_FILENO);
-                close(fd);
-
-                execvp(src[0], src);
-            }
-            else {
-                // wait for the child
-                wait(NULL);
-            }
-        }
-        else if (strstr(type_redir, "&>")) {
-
-            if (fork() == 0) {
-                int fd = open(dest, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-
-                // write the result of exec in the file
-                dup2(fd, STDERR_FILENO);
-                dup2(fd, STDOUT_FILENO);
-                close(fd);
-
-                execvp(src[0], src);
-            }
-            else {
-                // wait for the child
-                wait(NULL);
-            }
-        }
-        else if (strstr(type_redir, "2>")) {
-
-            if (fork() == 0) {
-                int fd = open(dest, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-
-                // write the result of exec in the file
-                dup2(fd, STDERR_FILENO);
-                close(fd);
-
-                execvp(src[0], src);
-            }
-            else {
-                // wait for the child
-                wait(NULL);
-            }
-        }
-        else if (strstr(type_redir, ">>")) {
-
-            if (fork() == 0) {
-                int fd = open(dest, O_RDWR | O_APPEND | S_IWUSR);
-
-                // write the result of exec in the file
-                dup2(fd, STDOUT_FILENO);
+                if (strstr(type_redir, "2")) {
+                    dup2(fd, STDERR_FILENO);
+                }
+                else if (strstr(type_redir, "&")) {
+                    dup2(fd, STDOUT_FILENO);
+                    dup2(fd, STDERR_FILENO);
+                }
+                else {
+                    // write the result of exec in the file
+                    dup2(fd, STDOUT_FILENO);
+                }
                 close(fd);
 
                 execvp(src[0], src);
@@ -113,8 +57,17 @@ bool redirect(char ** tabcmd, int size) {
             if (fork() == 0) {
                 int fd = open(dest, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 
-                // write the result of exec in the file
-                dup2(fd, STDOUT_FILENO);
+                if (strstr(type_redir, "2")) {
+                    dup2(fd, STDERR_FILENO);
+                }
+                else if (strstr(type_redir, "&")) {
+                    dup2(fd, STDOUT_FILENO);
+                    dup2(fd, STDERR_FILENO);
+                }
+                else {
+                    // write the result of exec in the file
+                    dup2(fd, STDOUT_FILENO);
+                }
                 close(fd);
 
                 execvp(src[0], src);
