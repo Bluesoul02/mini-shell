@@ -20,6 +20,8 @@ void printDirectory() {
 }
 
 Jobs* allJobs; // jobs
+Liste* localVars; // local variables
+Job *lastJob; // last job in foreground
 
 void loop() {
     printDirectory();
@@ -38,6 +40,21 @@ void jobHandler(int signum) { // handler for child signal -> Remove from backgro
     if(j) { // the signal if from a child executed in background
         printf("%s (jobs=[%d], pid=%d)\n",j->cmd,j->jobValue,j->pid);
         unsetJob(j->pid,allJobs); // remove it from current jobs
+    }
+}
+
+void ctrlCHandler(int signum) { // handler for ctrl-c signal -> Clean all memory
+    if(lastJob!=NULL && lastJob->state == RUNNING) { // stop the current action
+        kill(lastJob->pid,SIGINT);
+        lastJob->state=OVER;
+    } else { // free memory
+        killJobs(allJobs);
+        freeVariables(localVars);
+        freeJob(allJobs);
+        if(lastJob!=NULL) {
+            free(lastJob);
+        }
+        exit(0);
     }
 }
 
@@ -85,14 +102,15 @@ int requiredLine() {
     int * shm;
 
     signal(SIGCHLD,jobHandler);
+    signal(SIGINT,ctrlCHandler);
     shm = getMemSegment(2905, &shmid);
 
     allJobs = malloc(sizeof(*allJobs)); // initialize the list of jobs
     allJobs->job = NULL;
 
-    Job *lastJob = NULL; // last job executed in foreground
+    lastJob = NULL; // last job executed in foreground
 
-    Liste* localVars = malloc(sizeof(*localVars)); // local variables
+    localVars = malloc(sizeof(*localVars)); // local variables
     localVars->variable = NULL;
 
     char * parameters = malloc(100 * sizeof(char)); // parameters of the command
@@ -117,7 +135,7 @@ int requiredLine() {
         if(i){
             if(in) tabcmd2[out][in]=NULL;
             for(j=0;j<=out;j++) { // one processus per task/command
-                int to=0,and=0,or=0,index,bg;
+                int to=0,and=0,or=0,index,bg,inSet=0;
                 while(1) {
                     // parameters = ""; broke myls parameters
                     index=0;
@@ -145,12 +163,14 @@ int requiredLine() {
                         fathercmd = true; // the father executed the cmd
                         if (tabcmd2[j][1] == NULL) mycd("~"); // if no directory is set we cd to home directory
                         else mycd(tabcmd2[j][1]);
-                    }
-                    if (strcmp(*tabcmd2[j], "exit") == 0) {
+                    } else if (strcmp(*tabcmd2[j],"set") == 0 || strcmp(*tabcmd2[j],"setenv") == 0 || strcmp(*tabcmd2[j],"unset") == 0 || strcmp(*tabcmd2[j],"unsetenv") == 0) {
+                        inSet = 1; // impossible to set in background
+                    } else if (strcmp(*tabcmd2[j], "exit") == 0) {
                         fathercmd = true; // the father executed the cmd
                         myexit(tabcmd2[j][1]);
                     }
                     if(strcmp(tabcmd[index-1],"&")==0) { // put the son in background -> job list
+                        if(inSet) printf("Impossible to use set function in background\n");
                         tabcmd[index-1] = NULL;
                         index--;
                         bg=1;
@@ -172,11 +192,22 @@ int requiredLine() {
                                 // launch the function associated to the cmd
                                 (*customfct[k])(directory, parameters);
                                 freeVariables(localVars);
+                                freeJob(allJobs);
+                                if(lastJob) {
+                                    free(lastJob);
+                                }
                                 exit(0);
                             }
                         }
 
-                        if (redirect(tabcmd, index)) exit(0);
+                        if (redirect(tabcmd, index)) {
+                            freeVariables(localVars);
+                            freeJob(allJobs);
+                            if(lastJob != NULL) {
+                                free(lastJob);
+                            }
+                            exit(0);
+                        }
                         if ((pipe_size = isPiped(tabcmd2[j], str_piped, index, str)) > 0) {
 
                             pipedExec(str, str_piped, pipe_size);
@@ -189,28 +220,53 @@ int requiredLine() {
                             free(directory);
                             int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
                             freeVariables(localVars);
+                            freeJob(allJobs);
+                            if(lastJob != NULL) {
+                                free(lastJob);
+                            }
                             exit(retour);
                         } else if(strcmp("myjobs",*tabcmd) == 0) { // see all jobs
                             free(directory);
                             getAllJobs(allJobs);
                             freeVariables(localVars);
+                            freeJob(allJobs);
+                            if(lastJob != NULL) {
+                                free(lastJob);
+                            }
                             exit(0);
                         } else if(strcmp("status",*tabcmd) == 0) { // see last job executed in foreground
                             free(directory);
                             printJob(lastJob);
                             freeVariables(localVars);
+                            freeJob(allJobs);
+                            if(lastJob != NULL) {
+                                free(lastJob);
+                            }
                             exit(0);
                         }
                         freeVariables(localVars);
+                        freeJob(allJobs);
+                        if(lastJob != NULL) {
+                            free(lastJob);
+                        }
                         if(!myglob(globbuf, tabcmd,index)) exit(0); // check for wildcards
                         execvp(*tabcmd,tabcmd);
                         syserror(2);
                         exit(FAILED_EXEC);
                     } else { // wait for his sons to finish their tasks
                         close(p[1]);
-                        if(!bg) {
-                            waitpid(pid,&status,WUNTRACED|WCONTINUED); // wait the current child
-                            if(lastJob) free(lastJob); // replace the last job in foreground
+                        if(bg && !inSet) { // the child is executed in background, append it to the job list
+                            char *cmd = malloc(MAX*sizeof(char));
+                            strcpy(cmd,"");
+                            for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
+                            strcat(cmd,"\0");
+                            setJob(cmd,pid,allJobs);
+                            free(cmd);
+                        } else {
+                            inSet=0;
+                            if(lastJob != NULL) {
+                                free(lastJob); // replace the last job in foreground
+                            }
                             lastJob = malloc(sizeof(*lastJob));
                             char *cmd = malloc(MAX*sizeof(char));
                             strcpy(cmd,"");
@@ -219,9 +275,12 @@ int requiredLine() {
                             lastJob->cmd = cmd;
                             free(cmd);
                             lastJob->pid = pid;
+                            lastJob->state = RUNNING;
+                            waitpid(pid,&status,WUNTRACED|WCONTINUED); // wait the current child
                             if(WIFEXITED(status)){ // print the commmand status
                                 status=WEXITSTATUS(status);
                                 lastJob->retour = status;
+                                lastJob->state = OVER;
                                 if(status != FAILED_EXEC || fathercmd){
                                     if(status == 47) { // the son wants to create local variable
                                         char infos[BUFFER_SIZE];
@@ -239,15 +298,9 @@ int requiredLine() {
                                 } else if(and) break;
                             } else {
                                 lastJob->retour = status;
+                                lastJob->state = OVER;
                                 puts(ROUGE("Anormal exit"));
                             }
-                        } else { // the child is executed in background, append it to the job list
-                            char *cmd = malloc(MAX*sizeof(char));
-                            strcpy(cmd,"");
-                            for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
-                            strcat(cmd,"\0");
-                            setJob(cmd,pid,allJobs);
-                            free(cmd);
                         }
                         close(p[0]);
                         fathercmd = false;
@@ -266,5 +319,9 @@ int requiredLine() {
     free(parameters);
     free(directory);
     freeVariables(localVars);
+    freeJob(allJobs);
+    if(lastJob != NULL) {
+        free(lastJob);
+    }
     exit(0);
 }

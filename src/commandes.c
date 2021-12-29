@@ -278,6 +278,7 @@ int isVariable(char * val) { // check if we call a variable
 }
 
 char *valVariable(char * var, Liste *liste) { // get the value of a variable
+  if(liste == NULL) exit(EXIT_FAILURE);
   var++;
   Variable *v = liste->variable;
   while(v!=NULL) {
@@ -298,6 +299,7 @@ void allVariables(Liste *liste) { // print all local variables
 }
 
 void freeVariables(Liste *liste) { // free variables
+  if(liste == NULL) exit(EXIT_FAILURE);
   Variable *v = liste->variable;
   if(v != NULL) {
     while(v->suivant) {
@@ -315,6 +317,7 @@ void freeVariables(Liste *liste) { // free variables
 }
 
 int variableExists(char * name, Liste *liste) { // check if the variable with this name exists
+  if(liste == NULL) exit(EXIT_FAILURE);
   Variable *v = liste->variable;
   while(v!=NULL) {
     if(strcmp(name,v->name) == 0) return 1;
@@ -440,6 +443,7 @@ void getAllJobs(Jobs *liste) { // print all jobs
 }
 
 void freeJob(Jobs *liste) { // free jobs
+  if(liste == NULL) exit(EXIT_FAILURE);
   Job *j = liste->job;
   if(j != NULL) {
     while(j->suivant) {
@@ -496,5 +500,18 @@ int unsetJob(pid_t pid, Jobs *liste) { // unset a job = remove from the list of 
 void printJob(Job *job) { // print specific job status
   if(!job) return;
   if(job->retour == 127) printf("%d terminé anormalement\n",job->pid);
-  else printf("%d terminé avec code code de retour %d\n",job->pid,job->retour);
+  else printf("%d terminé avec comme code de retour %d\n",job->pid,job->retour);
+}
+
+void killJobs(Jobs *liste) {
+  if(liste == NULL) exit(EXIT_FAILURE);
+  Job *j = liste->job;
+  if(j != NULL) {
+    while(j->suivant) {
+      j=j->suivant;
+      kill(j->precedent->pid,SIGKILL);
+    }
+    kill(j->pid,SIGKILL);
+  }
+  return;
 }
