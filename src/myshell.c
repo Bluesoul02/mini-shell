@@ -202,6 +202,8 @@ int requiredLine() {
                                         temp = strtok(NULL, " ");
                                     }
                                 }
+                                free(parameters);
+                                free(directory);
                                 freeVariables(localVars);
                                 freeJob(allJobs);
                                 if(lastJob) {
