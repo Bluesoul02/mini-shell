@@ -73,7 +73,7 @@ void getAllJobs(Jobs *liste);
 
 void freeJob(Jobs *liste);
 
-int setJob(char * command, pid_t pid, Jobs *liste);
+int setJob(char * command, pid_t pid, Jobs *liste, Etat state);
 
 int unsetJob(pid_t pid, Jobs *liste);
 
