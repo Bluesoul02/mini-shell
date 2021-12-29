@@ -159,6 +159,7 @@ int requiredLine() {
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
+                                int c = 0;
                                 for (int m = 1; m < index; m++) {
                                     if (!strncmp(tabcmd[m], "-", 1)) {
                                         // parameter
@@ -166,10 +167,21 @@ int requiredLine() {
                                     } else {
                                         // not a parameter
                                         strcat(directory, tabcmd[m]);
+                                        sprintf(directory, "%s ", directory);
+                                        c++;
                                     }
                                 }
                                 // launch the function associated to the cmd
-                                (*customfct[k])(directory, parameters);
+                                if (c == 0) (*customfct[k])(directory, parameters);
+                                else {
+                                    char * temp = strtok(directory, " ");
+                                    for (int m = 0; m < c; m++) {
+                                        printf("%s:\n", temp);
+                                        (*customfct[k])(temp, parameters);
+                                        printf("\n");
+                                        temp = strtok(NULL, " ");
+                                    }
+                                }
                                 freeVariables(localVars);
                                 exit(0);
                             }
