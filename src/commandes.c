@@ -113,8 +113,7 @@ int maxSizeInRep(char *direct) {
     }
 
     sprintf(buffer, "%s/%s", direct, ptr->d_name);
-    printf("%s\n", buffer);
-    // erreur ici pour le -R
+    // printf("%s\n", buffer);
     if (fstatat(dirfd(dir), buffer, &fst, AT_SYMLINK_NOFOLLOW) == -1) {
       perror("fstatat maxSizeInRep");
       exit(1);
@@ -138,6 +137,8 @@ int maxSizeInRep(char *direct) {
 
 void myls(char * directory, char * parameters) {
     if (strcmp(directory, "") == 0) directory = ".";
+    // printf("x%sx\n", directory);
+    // printf("x%sx\n", parameters);
     struct stat fst;
     struct tm *mytime;
     char str[12];

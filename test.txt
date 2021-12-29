@@ -1,0 +1,11 @@
+build
+Makefile
+projetshell.pdf
+src
+test.txt
+total 420
+drwxrwxr-x 3 kevin kevin   4096 déc.  29 00:53 build
+-rw-rw-r-- 1 kevin kevin    588 déc.   4 19:32 Makefile
+-rw-rw-r-- 1 kevin kevin 410218 oct.  17 12:56 projetshell.pdf
+drwxrwxr-x 2 kevin kevin   4096 déc.  29 00:28 src
+-rw-rw-r-- 1 kevin kevin     44 déc.  29 00:54 test.txt

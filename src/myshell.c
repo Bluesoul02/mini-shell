@@ -119,7 +119,7 @@ int requiredLine() {
             for(j=0;j<=out;j++) { // one processus per task/command
                 int to=0,and=0,or=0,index,bg;
                 while(1) {
-                    parameters = "";
+                    // parameters = ""; broke myls parameters
                     index=0;
                     glob_t globbuf;
                     int p[2];
@@ -163,6 +163,7 @@ int requiredLine() {
                                     if (!strncmp(tabcmd[m], "-", 1)) {
                                         // parameter
                                         strcat(parameters, tabcmd[m]);
+                                        printf("%s\n", parameters);
                                     } else {
                                         // not a parameter
                                         strcat(directory, tabcmd[m]);
