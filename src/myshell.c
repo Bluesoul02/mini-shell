@@ -90,7 +90,7 @@ int requiredLine() {
     int i,j,status,in,out;
     // help distinguishing command executed from command executed by its childrens
     bool fathercmd = false;
-    bool using_parameters = false;
+    bool using_custom = false;
     // contain command that will be executed after the command contained in str
     char * str_piped[100];
     // contain the first command in a pipeline
@@ -179,6 +179,7 @@ int requiredLine() {
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
+                                using_custom = true;
                                 int c = 0;
                                 for (int m = 1; m < index; m++) {
                                     if (!strncmp(tabcmd[m], "-", 1)) {
@@ -213,6 +214,11 @@ int requiredLine() {
                             }
                         }
 
+                        if (!using_custom) {
+                            free(directory);
+                            free(parameters);
+                        }
+
                         if (redirect(tabcmd, index)) {
                             freeVariables(localVars);
                             freeJob(allJobs);
@@ -230,7 +236,7 @@ int requiredLine() {
                         }
 
                         if(strcmp("set",*tabcmd) == 0 || strcmp("setenv",*tabcmd) == 0 || strcmp("unset",*tabcmd) == 0 || strcmp("unsetenv",*tabcmd) == 0) { // set local or environment variable
-                            free(directory);
+                            // free(directory);
                             int retour = manageVariables(p,tabcmd,index,localVars); // send value to the father
                             freeVariables(localVars);
                             freeJob(allJobs);
@@ -239,7 +245,7 @@ int requiredLine() {
                             }
                             exit(retour);
                         } else if(strcmp("myjobs",*tabcmd) == 0) { // see all jobs
-                            free(directory);
+                            // free(directory);
                             getAllJobs(allJobs);
                             freeVariables(localVars);
                             freeJob(allJobs);
@@ -248,7 +254,7 @@ int requiredLine() {
                             }
                             exit(0);
                         } else if(strcmp("status",*tabcmd) == 0) { // see last job executed in foreground
-                            free(directory);
+                            // free(directory);
                             printJob(lastJob);
                             freeVariables(localVars);
                             freeJob(allJobs);
@@ -317,7 +323,7 @@ int requiredLine() {
                         }
                         close(p[0]);
                         fathercmd = false;
-                        using_parameters = false;
+                        using_custom = false;
                     }
                     if(tabcmd2[out][to++] == NULL) break;
                 }
