@@ -25,7 +25,7 @@ struct Liste {
     Variable *variable;
 };
 
-typedef enum { RUNNING = 10, STOPPED = 11 } Etat;
+typedef enum { RUNNING = 10, STOPPED = 11, OVER = 12 } Etat;
 
 typedef struct Job Job;
 
@@ -78,3 +78,5 @@ int setJob(char * command, pid_t pid, Jobs *liste);
 int unsetJob(pid_t pid, Jobs *liste);
 
 void printJob(Job *job);
+
+void killJobs(Jobs *liste);
