@@ -137,6 +137,9 @@ void myls(char * directory, char * parameters) {
     if (strcmp(directory, "") == 0) directory = ".";
     // printf("x%sx\n", directory);
     // printf("x%sx\n", parameters);
+    if (strstr(directory, " ")) {
+      printf("oui");
+    }
     struct stat fst;
     struct tm *mytime;
     char str[12];
