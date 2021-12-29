@@ -112,14 +112,12 @@ int maxSizeInRep(char *direct) {
       assert(buffer);
     }
 
-    sprintf(buffer, "%s/%s", direct, ptr->d_name);
-    // printf("%s\n", buffer);
+    sprintf(buffer, "%s", ptr->d_name);
     if (fstatat(dirfd(dir), buffer, &fst, AT_SYMLINK_NOFOLLOW) == -1) {
       perror("fstatat maxSizeInRep");
       exit(1);
     }
 
-    printf("post fstatat\n");
     if ((long)fst.st_size > max)
       max = (long)fst.st_size;
   }
@@ -142,9 +140,9 @@ void myls(char * directory, char * parameters) {
     struct stat fst;
     struct tm *mytime;
     char str[12];
-    printf("myls1\n");
+    // printf("myls1\n");
     long int maxSize = maxSizeInRep(directory);
-    printf("myls2\n");
+    // printf("myls2\n");
     unsigned length = floor(log10(maxSize)) + 1;
     char *buffer = NULL;
     int sizeBuffer = 0;
@@ -179,7 +177,7 @@ void myls(char * directory, char * parameters) {
         assert(buffer);
         }
 
-        sprintf(buffer, "%s/%s", directory, ptr->d_name);
+        sprintf(buffer, "%s", ptr->d_name);
         if (fstatat(dirfd(dir), buffer, &fst, AT_SYMLINK_NOFOLLOW) == -1) {
         perror("fstatat");
         exit(1);
@@ -226,7 +224,6 @@ void myls(char * directory, char * parameters) {
 
           sprintf(buffer, "%s/%s", directory, ptr->d_name);
 
-          printf("%s\n", buffer);
           myls(buffer, parameters);
         }
       }

@@ -183,7 +183,6 @@ int requiredLine() {
                                     if (!strncmp(tabcmd[m], "-", 1)) {
                                         // parameter
                                         strcat(parameters, tabcmd[m]);
-                                        printf("%s\n", parameters);
                                     } else {
                                         // not a parameter
                                         strcat(directory, tabcmd[m]);
