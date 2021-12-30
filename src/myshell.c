@@ -22,6 +22,8 @@ void printDirectory() {
 Jobs* allJobs; // jobs
 Liste* localVars; // local variables
 Job *lastJob; // last job in foreground
+char * parameters; // parameters of the command
+char * directory; // directory or file the command is aimed at
 
 void loop() {
     printDirectory();
@@ -59,6 +61,8 @@ void ctrlCHandler(int signum) { // handler for ctrl-c signal -> Clean all memory
                 free(lastJob->cmd);
                 free(lastJob);
             }
+            if(parameters) free(parameters);
+            if(directory) free(directory);
             exit(0);
         }
     }
@@ -133,8 +137,8 @@ int requiredLine() {
     localVars = malloc(sizeof(*localVars)); // local variables
     localVars->variable = NULL;
 
-    char * parameters = malloc(100 * sizeof(char)); // parameters of the command
-    char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
+    parameters = malloc(100 * sizeof(char));
+    directory  = malloc(100 * sizeof(char));
 
     for(;;){
         in=0;
