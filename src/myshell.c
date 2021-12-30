@@ -191,6 +191,15 @@ int requiredLine() {
                         inSet = 1; // impossible to set in background
                     } else if (strcmp(*tabcmd2[j], "exit") == 0) {
                         fathercmd = true; // the father executed the cmd
+                        killJobs(allJobs);
+                        freeVariables(localVars);
+                        freeJob(allJobs);
+                        if(lastJob!=NULL) {
+                            free(lastJob->cmd);
+                            free(lastJob);
+                        }
+                        if(parameters) free(parameters);
+                        if(directory) free(directory);
                         myexit(tabcmd2[j][1]);
                     }
                     if(strcmp(tabcmd[index-1],"&")==0) { // put the son in background -> job list

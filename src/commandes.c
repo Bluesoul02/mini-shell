@@ -9,7 +9,6 @@ void mycd(char * directory) {
 }
 
 void myexit() {
-  //TO DO exit qui quittera le shell sans tuer les cmd lancé en bg
   exit(0);
 }
 
