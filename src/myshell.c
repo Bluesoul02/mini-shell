@@ -22,6 +22,8 @@ void printDirectory() {
 Jobs* allJobs; // jobs
 Liste* localVars; // local variables
 Job *lastJob; // last job in foreground
+char * parameters; // parameters of the command
+char * directory; // directory or file the command is aimed at
 
 void loop() {
     printDirectory();
@@ -34,7 +36,7 @@ void jobHandler(int signum) { // handler for child signal -> Remove from backgro
     if(!pid) return;
     Job *j = allJobs->job; // search it from the jobs list
     while(j!=NULL) {
-        if(pid,j->pid) break;
+        if(pid==j->pid) break;
         j=j->suivant;
     }
     if(j) { // the signal if from a child executed in background
@@ -48,13 +50,34 @@ void ctrlCHandler(int signum) { // handler for ctrl-c signal -> Clean all memory
         kill(lastJob->pid,SIGINT);
         lastJob->state=OVER;
     } else { // free memory
-        killJobs(allJobs);
-        freeVariables(localVars);
-        freeJob(allJobs);
-        if(lastJob!=NULL) {
-            free(lastJob);
+        printf("\nClose this shell ?\n1 for Yes\tAnything else for No\n");
+        int answer;
+        scanf("%d",&answer);
+        if(answer) {
+            killJobs(allJobs);
+            freeVariables(localVars);
+            freeJob(allJobs);
+            if(lastJob!=NULL) {
+                free(lastJob->cmd);
+                free(lastJob);
+            }
+            if(parameters) free(parameters);
+            if(directory) free(directory);
+            exit(0);
         }
-        exit(0);
+    }
+}
+
+void ctrlZHandler(int signum) { // handler for ctrl-z signal -> Put the current action to stopped job
+    if (lastJob!=NULL && lastJob->state == RUNNING) { // stop the current action
+        lastJob->state = STOPPED;
+        setJob(lastJob->cmd, lastJob->pid, allJobs, STOPPED);
+        Job *j = allJobs->job; // search it from the jobs list
+        while(j!=NULL) {
+            if(lastJob->pid==j->pid) break;
+            j=j->suivant;
+        }
+        kill(j->pid,SIGTSTP);
     }
 }
 
@@ -103,6 +126,7 @@ int requiredLine() {
 
     signal(SIGCHLD,jobHandler);
     signal(SIGINT,ctrlCHandler);
+    signal(SIGTSTP,ctrlZHandler);
     shm = getMemSegment(2905, &shmid);
 
     allJobs = malloc(sizeof(*allJobs)); // initialize the list of jobs
@@ -113,8 +137,8 @@ int requiredLine() {
     localVars = malloc(sizeof(*localVars)); // local variables
     localVars->variable = NULL;
 
-    char * parameters = malloc(100 * sizeof(char)); // parameters of the command
-    char * directory  = malloc(100 * sizeof(char)); // directory or file the command is aimed at
+    parameters = malloc(100 * sizeof(char));
+    directory  = malloc(100 * sizeof(char));
 
     for(;;){
         in=0;
@@ -167,6 +191,15 @@ int requiredLine() {
                         inSet = 1; // impossible to set in background
                     } else if (strcmp(*tabcmd2[j], "exit") == 0) {
                         fathercmd = true; // the father executed the cmd
+                        killJobs(allJobs);
+                        freeVariables(localVars);
+                        freeJob(allJobs);
+                        if(lastJob!=NULL) {
+                            free(lastJob->cmd);
+                            free(lastJob);
+                        }
+                        if(parameters) free(parameters);
+                        if(directory) free(directory);
                         myexit(tabcmd2[j][1]);
                     }
                     if(strcmp(tabcmd[index-1],"&")==0) { // put the son in background -> job list
@@ -177,6 +210,7 @@ int requiredLine() {
                     }
                     if((pid=fork()) == ERR) fatalsyserror(1);
                     if(!pid && !fathercmd) { // execute the next command except if father already executed it
+                        signal(SIGTSTP,SIG_DFL);
                         for (int k = 0; k < CUSTOMCMD_SIZE; k++) {
                             if (strcmp(*tabcmd, customcmd[k]) == 0) {
                                 using_custom = true;
@@ -208,6 +242,7 @@ int requiredLine() {
                                 freeVariables(localVars);
                                 freeJob(allJobs);
                                 if(lastJob) {
+                                    free(lastJob->cmd);
                                     free(lastJob);
                                 }
                                 exit(0);
@@ -223,6 +258,7 @@ int requiredLine() {
                             freeVariables(localVars);
                             freeJob(allJobs);
                             if(lastJob != NULL) {
+                                free(lastJob->cmd);
                                 free(lastJob);
                             }
                             exit(0);
@@ -241,6 +277,7 @@ int requiredLine() {
                             freeVariables(localVars);
                             freeJob(allJobs);
                             if(lastJob != NULL) {
+                                free(lastJob->cmd);
                                 free(lastJob);
                             }
                             exit(retour);
@@ -250,6 +287,7 @@ int requiredLine() {
                             freeVariables(localVars);
                             freeJob(allJobs);
                             if(lastJob != NULL) {
+                                free(lastJob->cmd);
                                 free(lastJob);
                             }
                             exit(0);
@@ -259,6 +297,7 @@ int requiredLine() {
                             freeVariables(localVars);
                             freeJob(allJobs);
                             if(lastJob != NULL) {
+                                free(lastJob->cmd);
                                 free(lastJob);
                             }
                             exit(0);
@@ -266,6 +305,7 @@ int requiredLine() {
                         freeVariables(localVars);
                         freeJob(allJobs);
                         if(lastJob != NULL) {
+                            free(lastJob->cmd);
                             free(lastJob);
                         }
                         if(!myglob(globbuf, tabcmd,index)) exit(0); // check for wildcards
@@ -279,11 +319,12 @@ int requiredLine() {
                             strcpy(cmd,"");
                             for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
                             strcat(cmd,"\0");
-                            setJob(cmd,pid,allJobs);
+                            setJob(cmd,pid,allJobs,RUNNING);
                             free(cmd);
                         } else {
                             inSet=0;
                             if(lastJob != NULL) {
+                                free(lastJob->cmd);
                                 free(lastJob); // replace the last job in foreground
                             }
                             lastJob = malloc(sizeof(*lastJob));
@@ -292,7 +333,6 @@ int requiredLine() {
                             for(int n=0;n<index;n++) strcat(cmd,tabcmd[n]);
                             strcat(cmd,"\0");
                             lastJob->cmd = cmd;
-                            free(cmd);
                             lastJob->pid = pid;
                             lastJob->state = RUNNING;
                             waitpid(pid,&status,WUNTRACED|WCONTINUED); // wait the current child
@@ -317,7 +357,8 @@ int requiredLine() {
                                 } else if(and) break;
                             } else {
                                 lastJob->retour = status;
-                                lastJob->state = OVER;
+                                if(status!=5247) lastJob->state = OVER;
+                                else lastJob->state = STOPPED;
                                 puts(ROUGE("Anormal exit"));
                             }
                         }
@@ -340,6 +381,7 @@ int requiredLine() {
     freeVariables(localVars);
     freeJob(allJobs);
     if(lastJob != NULL) {
+        free(lastJob->cmd);
         free(lastJob);
     }
     exit(0);

@@ -9,7 +9,6 @@ void mycd(char * directory) {
 }
 
 void myexit() {
-  //TO DO exit qui quittera le shell sans tuer les cmd lancé en bg
   exit(0);
 }
 
@@ -460,7 +459,7 @@ void freeJob(Jobs *liste) { // free jobs
   return;
 }
 
-int setJob(char * command, pid_t pid, Jobs *liste) { // set a job
+int setJob(char * command, pid_t pid, Jobs *liste, Etat state) { // set a job
   Job *newJob = malloc(sizeof(*newJob));
   if(liste == NULL || newJob == NULL) exit(EXIT_FAILURE);
   newJob->cmd = malloc(MAX*sizeof(char));
@@ -468,12 +467,13 @@ int setJob(char * command, pid_t pid, Jobs *liste) { // set a job
   newJob->pid = pid;
   if(liste->job) newJob->jobValue = liste->job->jobValue+1;
   else newJob->jobValue = 1;
-  newJob->state = RUNNING;
+  newJob->state = state;
   newJob->suivant = liste->job;
   newJob->precedent = NULL;
   if(liste->job) liste->job->precedent = newJob; // add the job to the list of jobs
   liste->job = newJob;
-  printf("[%d] %d\n",newJob->jobValue,newJob->pid);
+  if(newJob->state == STOPPED) printf("%s [%d] %d Stopped\n",newJob->cmd,newJob->jobValue,newJob->pid);
+  else printf("[%d] %d\n",newJob->jobValue,newJob->pid);
   return 0;
 }
 
@@ -502,10 +502,11 @@ int unsetJob(pid_t pid, Jobs *liste) { // unset a job = remove from the list of 
 void printJob(Job *job) { // print specific job status
   if(!job) return;
   if(job->retour == 127) printf("%d terminé anormalement\n",job->pid);
+  else if(job->state == STOPPED) printf("%d stoppé\n",job->pid);
   else printf("%d terminé avec comme code de retour %d\n",job->pid,job->retour);
 }
 
-void killJobs(Jobs *liste) {
+void killJobs(Jobs *liste) { // kill all background jobs
   if(liste == NULL) exit(EXIT_FAILURE);
   Job *j = liste->job;
   if(j != NULL) {
