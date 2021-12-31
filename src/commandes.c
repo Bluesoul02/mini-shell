@@ -89,7 +89,7 @@ void modeToLetter(int mode, char *str) {
  * @param direct
  * @return int
  */
-int maxSizeInRep(char *direct) {
+int maxSizeInRep(char *direct, int * totalblocks) {
   long int max = 0;
   struct stat fst;
   char * buffer = NULL;
@@ -120,6 +120,8 @@ int maxSizeInRep(char *direct) {
 
     if ((long)fst.st_size > max)
       max = (long)fst.st_size;
+
+    *totalblocks = *totalblocks + fst.st_blocks;
   }
 
   if (closedir(dir) == -1) {
@@ -137,14 +139,12 @@ void myls(char * directory, char * parameters) {
     if (strcmp(directory, "") == 0) directory = ".";
     // printf("x%sx\n", directory);
     // printf("x%sx\n", parameters);
-    if (strstr(directory, " ")) {
-      printf("oui");
-    }
     struct stat fst;
     struct tm *mytime;
     char str[12];
     // printf("myls1\n");
-    long int maxSize = maxSizeInRep(directory);
+    int totalblocks = 0;
+    long int maxSize = maxSizeInRep(directory, &totalblocks);
     // printf("myls2\n");
     unsigned length = floor(log10(maxSize)) + 1;
     char *buffer = NULL;
@@ -169,6 +169,8 @@ void myls(char * directory, char * parameters) {
         perror("opendir");
         exit(1);
     }
+
+    printf("total %d\n", totalblocks/2);
 
     while ((ptr = readdir(dir)) != NULL) {
         if ((!strncmp(ptr->d_name, ".", 1) || !strcmp(ptr->d_name, "..")) && strstr(parameters, "a") == NULL)
