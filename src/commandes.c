@@ -136,6 +136,7 @@ int maxSizeInRep(char *direct, int * totalblocks) {
 
 void myls(char * directory, char * parameters) {
     if (strcmp(directory, "") == 0) directory = ".";
+    else if (strcmp(directory, "~") == 0) directory = getenv("HOME");
     // printf("x%sx\n", directory);
     // printf("x%sx\n", parameters);
     struct stat fst;

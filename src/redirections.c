@@ -84,11 +84,10 @@ bool redirect(char ** tabcmd, int size) {
 // function where the piped system commands is executed
 void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
 {
-    // printf("piped Exec\n");
 
     // 0 is read, 1 is write
     int pipefd[2]; 
-    pid_t p1, p2;
+    pid_t p1, p2, p3;
   
     if (pipe(pipefd) < 0) {
         printf("Pipe could not be initialized\n");
@@ -123,9 +122,16 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
             if ((size = isPiped(parsedpipe, str_piped, pipe_size, str)) > 0) {
                 // printf("more pipe\n");
 
+                p3 = fork();
+
+                if (p3 < 0) {
+                    printf("Could not fork\n");
+                    return;
+                }
+
                 // child
                 // it needs to read and write
-                if (fork() == 0) {
+                if (p3 == 0) {
                     // printf("infinite pipe");
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
@@ -161,7 +167,7 @@ void pipedExec(char** parsed, char** parsedpipe, int pipe_size)
                     dup2(pipefd[0], STDIN_FILENO);
                     close(pipefd[0]);
 
-                    // printf("child exec");
+                    // printf("child exec\n");
                     execvp(str[0], str);
                     exit(FAILED_EXEC);
                 }
