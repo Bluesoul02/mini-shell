@@ -36,5 +36,5 @@ Avot Kévin : ...%
 
     - La commande set ne peut s'exécuter qu'en foreground, car elle fonctionne par le biais d'un pipe et le père attend une lecture dans cette dernière.
     - Ctrl-c tue les processus fils avant de demander à l'utilisateur. Le signal est propagé du processus père au fils.
-    - Si on essaye d'éxecuter une commande contenant beaucoup de pipe le programme bouclera à l'infini car le dernier fils est bloqué et donc le père aussi car il attend ses fils.
+    - Si on essaye d'éxecuter une commande contenant plus d'un pipe par séparateur le programme bouclera à l'infini car le dernier fils est bloqué et donc le père aussi car il attend ses fils.
     - Si on essaye de ctrl-c afin de quitter le shell lors du bug ci-dessus une erreur lié au free se produira lors de la fermeture du shell.
