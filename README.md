@@ -1,8 +1,8 @@
 **Pourcentage de la part de travail :**
 
-Delacroix Grégoire : ...%
+Delacroix Grégoire : 50%
 
-Avot Kévin : ...%
+Avot Kévin : 50%
 
 **Fonctionnalités implémentées :**
 
